@@ -333,6 +333,8 @@ export default function IronCrew({ user }) {
   const [newPostText, setNewPostText] = useState("");
   const [postingText, setPostingText] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
+  // ── Реальні користувачі для чату ──
+  const [realUsers, setRealUsers] = useState([]);
 
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
@@ -377,6 +379,14 @@ export default function IronCrew({ user }) {
   };
 
   useEffect(() => { if (user) loadFeed(); }, [user]);
+
+  // Завантаження реальних користувачів для чату
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("user_id, name, gym, city")
+      .neq("user_id", user.id)
+      .then(({ data }) => { if (data) setRealUsers(data); });
+  }, [user]);
 
   // ── Завантаження повідомлень і Realtime ──
   useEffect(() => {
@@ -788,13 +798,25 @@ export default function IronCrew({ user }) {
         {tab === "chat" && (<>
           <div className="stitle">ПОВІДОМЛЕННЯ</div>
           <div className="sbar"><span style={{ fontSize: 16, color: "var(--muted)" }}>🔍</span><input placeholder="Пошук..." /></div>
-          {chatsData.map(c => (
-            <div key={c.id} className="citem" onClick={() => setOpenChat(c)}>
-              <div className="cava" style={{ background: c.col, color: "#fff" }}>{c.ini}{c.online && <div className="odot" />}</div>
-              <div className="cinf"><div className="cname">{c.name}</div><div className="cprev">{c.prev}</div></div>
-              <div className="cmeta"><div className="ctime">{c.time}</div>{c.unread > 0 && <div className="ubadge">{c.unread}</div>}</div>
+          {realUsers.length === 0 && (
+            <div style={{ textAlign: "center", color: "var(--muted)", padding: 30, fontSize: 13 }}>
+              Поки що немає інших користувачів
             </div>
-          ))}
+          )}
+          {realUsers.map(u => {
+            const col = getColor(u.user_id);
+            const ini = getIni(u.name);
+            return (
+              <div key={u.user_id} className="citem" onClick={() => openChatWith({ id: u.user_id, userId: u.user_id, name: u.name || "Користувач", ini, col })}>
+                <div className="cava" style={{ background: col, color: "#fff" }}>{ini}</div>
+                <div className="cinf">
+                  <div className="cname">{u.name || "Користувач"}</div>
+                  <div className="cprev">{u.gym || u.city || "IronCrew"}</div>
+                </div>
+                <div className="cmeta"><div className="ctime">💬</div></div>
+              </div>
+            );
+          })}
         </>)}
 
         {/* ── ПРОФІЛЬ ── */}
