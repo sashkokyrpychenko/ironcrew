@@ -352,11 +352,12 @@ export default function IronCrew({ user }) {
   // Завантаження стрічки
   const loadFeed = async () => {
     setFeedLoading(true);
-    const { data: posts } = await supabase
+    const { data: posts, error } = await supabase
       .from("posts")
-      .select("*, profiles(name, gym, city)")
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
+    if (error) { console.error("loadFeed error:", error); setFeedLoading(false); return; }
     if (!posts) { setFeedLoading(false); return; }
     const postIds = posts.map(p => p.id);
     const { data: likesData } = postIds.length
@@ -400,7 +401,7 @@ export default function IronCrew({ user }) {
     const { data, error } = await supabase
       .from("posts")
       .insert([{ user_id: user.id, content: newPostText.trim() }])
-      .select("*, profiles(name, gym, city)");
+      .select("*");
     if (!error && data) {
       setFeedPosts(prev => [data[0], ...prev]);
       setNewPostText("");
