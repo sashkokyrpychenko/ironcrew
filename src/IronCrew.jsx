@@ -301,8 +301,9 @@ export default function IronCrew({ user }) {
   const [period, setPeriod] = useState("Тиждень");
   const [checked, setChecked] = useState({});
   const [openChat, setOpenChat] = useState(null);
-  const [msgs, setMsgs] = useState(initMsgs);
+  const [chatMsgsReal, setChatMsgsReal] = useState([]);
   const [inp, setInp] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
   const [findTab, setFindTab] = useState("people");
   const [recSub, setRecSub] = useState("near");
   const [fGender, setFGender] = useState("Всі");
@@ -334,7 +335,7 @@ export default function IronCrew({ user }) {
   const [feedLoading, setFeedLoading] = useState(true);
 
   const endRef = useRef(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, openChat]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
 
   useEffect(() => {
     if (!user) return;
@@ -376,6 +377,39 @@ export default function IronCrew({ user }) {
   };
 
   useEffect(() => { if (user) loadFeed(); }, [user]);
+
+  // ── Завантаження повідомлень і Realtime ──
+  useEffect(() => {
+    if (!openChat || !user) return;
+    setChatLoading(true);
+    const otherId = openChat.userId;
+
+    // Завантажити історію
+    supabase.from("messages")
+      .select("*")
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setChatMsgsReal(data || []);
+        setChatLoading(false);
+      });
+
+    // Realtime підписка
+    const channel = supabase.channel(`chat_${user.id}_${otherId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, (payload) => {
+        if (payload.new.sender_id === otherId) {
+          setChatMsgsReal(prev => [...prev, payload.new]);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [openChat, user]);
 
   // Завантаження follows
   useEffect(() => {
@@ -466,16 +500,22 @@ export default function IronCrew({ user }) {
     setShowAddWorkout(false); setSavingWorkout(false);
   };
 
-  const sendMsg = () => {
+  const sendMsg = async () => {
     if (!inp.trim() || !openChat) return;
-    const m = { id: Date.now(), from: "me", text: inp.trim(), time: new Date().toLocaleTimeString("uk", { hour: "2-digit", minute: "2-digit" }) };
-    setMsgs(prev => ({ ...prev, [openChat.id]: [...(prev[openChat.id] || []), m] }));
+    const content = inp.trim();
     setInp("");
+    const msg = {
+      sender_id: user.id,
+      receiver_id: openChat.userId,
+      content,
+    };
+    const { data } = await supabase.from("messages").insert([msg]).select();
+    if (data) setChatMsgsReal(prev => [...prev, data[0]]);
   };
 
   const openChatWith = (p) => {
-    const c = chatsData.find(x => x.id === p.id) || { id: p.id, name: p.name, ini: p.ini, col: p.col, online: true };
-    setOpenChat(c); setTab("chat");
+    setOpenChat({ ...p, userId: p.userId || p.id });
+    setTab("chat");
   };
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
@@ -488,22 +528,34 @@ export default function IronCrew({ user }) {
   const plan = wplan[aday];
 
   if (openChat) {
-    const chatMsgs = msgs[openChat.id] || [];
     return (<><style>{css}</style>
       <div className="app"><div className="cwin">
         <div className="cwh">
-          <div className="backbtn" onClick={() => setOpenChat(null)}>←</div>
-          <div className="cwava" style={{ background: openChat.col, color: "#fff" }}>{openChat.ini}{openChat.online && <div className="odot" />}</div>
-          <div style={{ flex: 1 }}><div className="cwname">{openChat.name}</div><div className="cwst">● онлайн</div></div>
+          <div className="backbtn" onClick={() => { setOpenChat(null); setChatMsgsReal([]); }}>←</div>
+          <div className="cwava" style={{ background: openChat.col || getColor(openChat.userId), color: "#fff" }}>
+            {openChat.ini || getIni(openChat.name)}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="cwname">{openChat.name}</div>
+            <div className="cwst">● онлайн</div>
+          </div>
         </div>
         <div className="msgs">
-          {chatMsgs.length === 0 && <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, marginTop: 40 }}>Почни розмову 💬</div>}
-          {chatMsgs.map(m => (
-            <div key={m.id} className={`mrow${m.from === "me" ? " me" : ""}`}>
-              {m.from === "th" && <div className="mava" style={{ background: openChat.col, color: "#fff" }}>{openChat.ini[0]}</div>}
-              <div><div className={`mbub${m.from === "me" ? " my" : " th"}`}>{m.text}</div><div className="mt" style={{ textAlign: m.from === "me" ? "right" : "left" }}>{m.time}</div></div>
-            </div>
-          ))}
+          {chatLoading && <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, marginTop: 40 }}>Завантаження...</div>}
+          {!chatLoading && chatMsgsReal.length === 0 && <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, marginTop: 40 }}>Почни розмову 💬</div>}
+          {chatMsgsReal.map(m => {
+            const isMe = m.sender_id === user.id;
+            const time = new Date(m.created_at).toLocaleTimeString("uk", { hour: "2-digit", minute: "2-digit" });
+            return (
+              <div key={m.id} className={`mrow${isMe ? " me" : ""}`}>
+                {!isMe && <div className="mava" style={{ background: openChat.col || getColor(openChat.userId), color: "#fff" }}>{(openChat.ini || getIni(openChat.name))[0]}</div>}
+                <div>
+                  <div className={`mbub${isMe ? " my" : " th"}`}>{m.content}</div>
+                  <div className="mt" style={{ textAlign: isMe ? "right" : "left" }}>{time}</div>
+                </div>
+              </div>
+            );
+          })}
           <div ref={endRef} />
         </div>
         <div className="cinrow">
@@ -592,7 +644,7 @@ export default function IronCrew({ user }) {
                   )}
                   <div className="sp" />
                   {!isMe && (
-                    <button className="abtn" onClick={() => openChatWith({ id: post.user_id, name: authorName, ini, col })}>✉️</button>
+                    <button className="abtn" onClick={() => openChatWith({ id: post.user_id, userId: post.user_id, name: authorName, ini, col })}>✉️</button>
                   )}
                 </div>
               </div>
