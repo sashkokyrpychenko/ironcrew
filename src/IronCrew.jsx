@@ -335,10 +335,18 @@ export default function IronCrew({ user }) {
   const [feedLoading, setFeedLoading] = useState(true);
   // ── Реальні користувачі для чату ──
   const [realUsers, setRealUsers] = useState([]);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
 
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
-
+  useEffect(() => {
+  if (!timerActive) return;
+  const interval = setInterval(() => {
+    setTimerSeconds(s => s + 1);
+  }, 1000);
+  return () => clearInterval(interval);
+}, [timerActive]);
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("user_id", user.id).single()
@@ -690,7 +698,23 @@ export default function IronCrew({ user }) {
                 </div>
               );})}
             </div>
-            <button className="sbtn">▶ ПОЧАТИ ТРЕНУВАННЯ</button>
+            {!timerActive ? (
+  <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
+    ▶ ПОЧАТИ ТРЕНУВАННЯ
+  </button>
+) : (
+  <div style={{ marginTop: 12 }}>
+    <div style={{ background: "var(--accent)", borderRadius: 16, padding: "20px", textAlign: "center", marginBottom: 10 }}>
+      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 48, color: "#000", letterSpacing: 2 }}>
+        {String(Math.floor(timerSeconds/3600)).padStart(2,"0")}:{String(Math.floor((timerSeconds%3600)/60)).padStart(2,"0")}:{String(timerSeconds%60).padStart(2,"0")}
+      </div>
+      <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
+    </div>
+    <button className="sbtn" style={{ background: "var(--accent2)" }} onClick={() => setTimerActive(false)}>
+      ⏹ ЗАВЕРШИТИ ТРЕНУВАННЯ
+    </button>
+  </div>
+)}
           </>) : (
             <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}><div style={{ fontSize: 48, marginBottom: 12 }}>😴</div><div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22 }}>{plan.t}</div></div>
           )}
@@ -823,7 +847,7 @@ export default function IronCrew({ user }) {
                 <div className="cava" style={{ background: col, color: "#fff" }}>{ini}</div>
                 <div className="cinf">
                   <div className="cname">{u.name || "Користувач"}</div>
-                  <div className="cprev">{u.lastMsg || u.gym || "Ну напиши вже"}</div>
+                  <div className="cprev">{u.lastMsg || u.gym || "ЧЕКАЄ ТВОЄ ПОВІДОМЛЕННЯ"}</div>
                 </div>
                 <div className="cmeta"><div className="ctime">💬</div></div>
               </div>
