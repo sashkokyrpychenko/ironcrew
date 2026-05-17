@@ -382,11 +382,23 @@ export default function IronCrew({ user }) {
 
   // Завантаження реальних користувачів для чату
   useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("user_id, name, gym, city")
-      .neq("user_id", user.id)
-      .then(({ data }) => { if (data) setRealUsers(data); });
-  }, [user]);
+  if (!user) return;
+  supabase.from("profiles").select("user_id, name, gym, city")
+    .neq("user_id", user.id)
+    .then(async ({ data }) => {
+      if (!data) return;
+      const withMsg = await Promise.all(data.map(async (p) => {
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("content, created_at")
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${p.user_id}),and(sender_id.eq.${p.user_id},receiver_id.eq.${user.id})`)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        return { ...p, lastMsg: msgs?.[0]?.content || null };
+      }));
+      setRealUsers(withMsg);
+    });
+}, [user]);
 
   // ── Завантаження повідомлень і Realtime ──
   useEffect(() => {
@@ -811,7 +823,7 @@ export default function IronCrew({ user }) {
                 <div className="cava" style={{ background: col, color: "#fff" }}>{ini}</div>
                 <div className="cinf">
                   <div className="cname">{u.name || "Користувач"}</div>
-                  <div className="cprev">{u.gym || u.city || "IronCrew"}</div>
+                  <div className="cprev">{u.lastMsg || u.gym || "Ну напиши вже"}</div>
                 </div>
                 <div className="cmeta"><div className="ctime">💬</div></div>
               </div>
