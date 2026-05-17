@@ -337,6 +337,10 @@ export default function IronCrew({ user }) {
   const [realUsers, setRealUsers] = useState([]);
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [selectedEx, setSelectedEx] = useState(null);
+const [exSets, setExSets] = useState("");
+const [exReps, setExReps] = useState("");
+const [exWeight, setExWeight] = useState("");
 
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
@@ -693,12 +697,32 @@ export default function IronCrew({ user }) {
               {plan.ex.map((ex, i) => { const k = `${aday}-${i}`; const done = checked[k]; return (
                 <div className="exi" key={i}>
                   <div className="enum">{i+1}</div>
-                  <div className="exinf"><div className="exn" style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none" }}>{ex.n}</div><div className="exd">{ex.s} · {ex.d}</div></div>
+                  <div className="exn" 
+  style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}
+  onClick={() => { setSelectedEx({ name: ex.n, key: k }); setExSets(""); setExReps(""); setExWeight(""); }}
+>
+  {ex.n}
+</div>
                   <button className={`cbtn${done ? " done" : ""}`} onClick={() => setChecked(c => ({ ...c, [k]: !c[k] }))}>{done ? "✓" : ""}</button>
                 </div>
               );})}
             </div>
-            {!timerActive ? (
+            {selectedEx && (
+  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:420,padding:"24px 20px 40px"}}>
+      <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,marginBottom:20}}>{selectedEx.name}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
+        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ПІДХОДИ</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="4" value={exSets} onChange={e=>setExSets(e.target.value)}/></div>
+        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ПОВТОРЕННЯ</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="8" value={exReps} onChange={e=>setExReps(e.target.value)}/></div>
+        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ВАГА (кг)</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="80" value={exWeight} onChange={e=>setExWeight(e.target.value)}/></div>
+      </div>
+      <button style={{width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:14,padding:16,fontFamily:"'Bebas Neue',sans-serif",fontSize:20,cursor:"pointer"}} onClick={()=>{setSelectedEx(null);setExSets("");setExReps("");setExWeight("");}}>💾 ЗБЕРЕГТИ</button>
+      <button style={{width:"100%",background:"none",border:"none",color:"var(--muted)",padding:12,cursor:"pointer",marginTop:8}} onClick={()=>setSelectedEx(null)}>Скасувати</button>
+    </div>
+  </div>
+)}
+{!timerActive ? (
   <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
     ▶ ПОЧАТИ ТРЕНУВАННЯ
   </button>
