@@ -631,13 +631,19 @@ useEffect(() => {
     setSavingWorkout(false);
   };
 
-  const sendMsg=()=>{
-    if(!inp.trim()||!openChat)return;
-    const m={id:Date.now(),from:"me",text:inp.trim(),time:new Date().toLocaleTimeString('uk',{hour:'2-digit',minute:'2-digit'})};
-    setMsgs(prev=>({...prev,[openChat.id]:[...(prev[openChat.id]||[]),m]}));
-    setInp("");
-  };
+  const sendMsg = async () => {
+  if (!inp.trim() || !openChat) return;
+  const text = inp.trim();
+  setInp("");
 
+  // Зберігаємо в Supabase
+  await supabase.from("messages").insert({
+    sender_id: user.id,
+    receiver_id: openChat.id,
+    content: text,
+    read: false,
+  });
+};
   const openChatWith=(p)=>{
     const c=chatsData.find(x=>x.id===p.id)||{id:p.id,name:p.name,ini:p.ini,col:p.col,online:true};
     setOpenChat(c);setTab("chat");
@@ -655,6 +661,37 @@ useEffect(() => {
   const plan=wplan[aday];
 
   if(openChat){
+    const [realMsgs, setRealMsgs] = useState([]);
+
+useEffect(() => {
+  if (!openChat) return;
+
+  // Завантажити історію
+  supabase.from("messages")
+    .select("*")
+    .or(`and(sender_id.eq.${user.id},receiver_id.eq.${openChat.id}),and(sender_id.eq.${openChat.id},receiver_id.eq.${user.id})`)
+    .order("created_at", { ascending: true })
+    .then(({ data }) => { if (data) setRealMsgs(data); });
+
+  // Realtime — нові повідомлення
+  const channel = supabase.channel(`chat-${openChat.id}`)
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+    }, (payload) => {
+      const msg = payload.new;
+      if (
+        (msg.sender_id === user.id && msg.receiver_id === openChat.id) ||
+        (msg.sender_id === openChat.id && msg.receiver_id === user.id)
+      ) {
+        setRealMsgs(prev => [...prev, msg]);
+      }
+    })
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);
+}, [openChat]);
     const chatMsgs=msgs[openChat.id]||[];
     return(<><style>{css}</style>
       <div className="app"><div className="cwin">
@@ -665,12 +702,18 @@ useEffect(() => {
         </div>
         <div className="msgs">
           {chatMsgs.length===0&&<div style={{textAlign:"center",color:"var(--muted)",fontSize:13,marginTop:40}}>Почни розмову 💬</div>}
-          {chatMsgs.map(m=>(
-            <div key={m.id} className={`mrow${m.from==="me"?" me":""}`}>
-              {m.from==="th"&&<div className="mava" style={{background:openChat.col,color:"#fff"}}>{openChat.ini[0]}</div>}
-              <div><div className={`mbub${m.from==="me"?" my":" th"}`}>{m.text}</div><div className="mt" style={{textAlign:m.from==="me"?"right":"left"}}>{m.time}</div></div>
-            </div>
-          ))}
+          {realMsgs.map(m=>(
+  <div key={m.id} className={`mrow${m.sender_id === user.id ? " me" : ""}`}>
+    {m.sender_id !== user.id && <div className="mava" style={{background:openChat.col,color:"#fff"}}>{openChat.ini[0]}</div>}
+    <div>
+      <div className={`mbub${m.sender_id === user.id ? " my" : " th"}`}>{m.content}</div>
+      <div className="mt" style={{textAlign:m.sender_id===user.id?"right":"left"}}>
+        {new Date(m.created_at).toLocaleTimeString("uk",{hour:"2-digit",minute:"2-digit"})}
+      </div>
+    </div>
+  </div>
+))}
+
           <div ref={endRef}/>
         </div>
         <div className="cinrow">
