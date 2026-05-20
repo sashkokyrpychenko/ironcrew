@@ -341,6 +341,7 @@ export default function IronCrew({ user }) {
 const [exSets, setExSets] = useState("");
 const [exReps, setExReps] = useState("");
 const [exWeight, setExWeight] = useState("");
+const [savedSets, setSavedSets] = useState({});
 
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
@@ -726,7 +727,7 @@ const [exWeight, setExWeight] = useState("");
     weight:exWeight?parseFloat(exWeight):null,
     day:aday,
   });
-  setSelectedEx(null);setExSets("");setExReps("");setExWeight("");
+  setSelectedEx(null);setSavedSets(prev => ({ ...prev, [selectedEx.key]: { sets: exSets, reps: exReps, weight: exWeight } }));
 }}>💾 НАЖМИ СЮДИ ДАУН</button>
       <button style={{width:"100%",background:"none",border:"none",color:"var(--muted)",padding:12,cursor:"pointer",marginTop:8}} onClick={()=>setSelectedEx(null)}>Скасувати</button>
     </div>
@@ -734,7 +735,7 @@ const [exWeight, setExWeight] = useState("");
 )}
 {!timerActive ? (
   <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
-    ▶ ПОЧАТИ ТРЕНУВАННЯ
+    ▶ ЄБАШ!
   </button>
 ) : (
   <div style={{ marginTop: 12 }}>
@@ -745,7 +746,7 @@ const [exWeight, setExWeight] = useState("");
       <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
     </div>
     <button className="sbtn" style={{ background: "var(--accent2)" }} onClick={() => setTimerActive(false)}>
-      ⏹ ЗАВЕРШИТИ ТРЕНУВАННЯ
+      ⏹ ВСЬО НАХОЙ
     </button>
   </div>
 )}
