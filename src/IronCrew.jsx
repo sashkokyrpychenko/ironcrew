@@ -717,7 +717,17 @@ const [exWeight, setExWeight] = useState("");
         <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ПОВТОРЕННЯ</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="8" value={exReps} onChange={e=>setExReps(e.target.value)}/></div>
         <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ВАГА (кг)</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="80" value={exWeight} onChange={e=>setExWeight(e.target.value)}/></div>
       </div>
-      <button style={{width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:14,padding:16,fontFamily:"'Bebas Neue',sans-serif",fontSize:20,cursor:"pointer"}} onClick={()=>{setSelectedEx(null);setExSets("");setExReps("");setExWeight("");}}>💾 ЗБЕРЕГТИ</button>
+      <button style={{width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:14,padding:16,fontFamily:"'Bebas Neue',sans-serif",fontSize:20,cursor:"pointer"}} onClick={async()=>{
+  await supabase.from("workout_sets").insert({
+    user_id:user.id,
+    exercise_name:selectedEx.name,
+    sets:exSets?parseInt(exSets):null,
+    reps:exReps?parseInt(exReps):null,
+    weight:exWeight?parseFloat(exWeight):null,
+    day:aday,
+  });
+  setSelectedEx(null);setExSets("");setExReps("");setExWeight("");
+}}>💾 НАЖМИ СЮДИ ДАУН</button>
       <button style={{width:"100%",background:"none",border:"none",color:"var(--muted)",padding:12,cursor:"pointer",marginTop:8}} onClick={()=>setSelectedEx(null)}>Скасувати</button>
     </div>
   </div>
