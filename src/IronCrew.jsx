@@ -704,6 +704,11 @@ const [savedSets, setSavedSets] = useState({});
 >
   {ex.n}
 </div>
+{savedSets[k] && (
+  <div style={{fontSize:11,color:"var(--accent)",fontWeight:700,marginTop:2}}>
+    {savedSets[k].sets}×{savedSets[k].reps} · {savedSets[k].weight}кг
+  </div>
+)}
                   <button className={`cbtn${done ? " done" : ""}`} onClick={() => setChecked(c => ({ ...c, [k]: !c[k] }))}>{done ? "✓" : ""}</button>
                 </div>
               );})}
