@@ -750,7 +750,18 @@ const [savedSets, setSavedSets] = useState({});
       </div>
       <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
     </div>
-    <button className="sbtn" style={{ background: "var(--accent2)" }} onClick={() => setTimerActive(false)}>
+    <button className="sbtn" style={{ background: "var(--accent2)" }} onClick={async () => {
+  await supabase.from("workouts").insert({
+    user_id: user.id,
+    title: plan.t,
+    duration: Math.floor(timerSeconds / 60),
+    volume: null,
+    exercises: plan.ex.map(e => e.n),
+  });
+  setTimerActive(false);
+  setTimerSeconds(0);
+  setSavedSets({});
+}}>
       ⏹ ВСЬО НАХОЙ
     </button>
   </div>
