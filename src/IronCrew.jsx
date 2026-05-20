@@ -750,7 +750,7 @@ const [savedSets, setSavedSets] = useState({});
       </div>
       <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
     </div>
-    <button className="sbtn" style={{ background: "var(--accent2)" }} onClick={async () => {
+    <button className="sbtn" style={{ background: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "var(--accent2)" : "var(--border)", cursor: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "pointer" : "not-allowed" }} disabled={Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length === 0} onClick={async () => {
   await supabase.from("workouts").insert({
     user_id: user.id,
     title: plan.t,
