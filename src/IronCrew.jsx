@@ -23,13 +23,6 @@ const css = `
   .stitle span{color:var(--accent);}
   .sub{color:var(--muted);font-size:13px;margin-top:2px;margin-bottom:16px;}
   @keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-  .stories{display:flex;gap:12px;overflow-x:auto;margin:0 -20px 20px;padding:0 20px 8px;scrollbar-width:none;}
-  .stories::-webkit-scrollbar{display:none;}
-  .story{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;}
-  .sring{width:58px;height:58px;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,var(--accent2),var(--accent));}
-  .sring.seen{background:var(--border);}
-  .sinner{width:100%;height:100%;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid var(--bg);}
-  .sname{font-size:10px;color:var(--muted);max-width:58px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .fcard{background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:14px;overflow:hidden;animation:fu 0.4s ease both;}
   .fhead{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;}
   .uava{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;}
@@ -42,6 +35,7 @@ const css = `
   .abtn:hover{border-color:var(--accent);color:var(--accent);}
   .abtn.liked{color:var(--accent2);border-color:var(--accent2);}
   .abtn.following{color:var(--accent);border-color:var(--accent);}
+  .abtn.danger{color:var(--accent2);border-color:rgba(255,107,53,0.3);}
   .sp{flex:1;}
   .dtabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px;padding-bottom:4px;}
   .dtabs::-webkit-scrollbar{display:none;}
@@ -54,7 +48,6 @@ const css = `
   .exi{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);}
   .exi:last-child{border-bottom:none;}
   .enum{width:28px;height:28px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);flex-shrink:0;}
-  .exinf{flex:1;}
   .exn{font-size:14px;font-weight:500;}
   .exd{font-size:11px;color:var(--muted);margin-top:2px;}
   .cbtn{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.18s;}
@@ -94,13 +87,11 @@ const css = `
   .citem{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;cursor:pointer;transition:background 0.18s;}
   .citem:hover{background:var(--surface);}
   .cava{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;position:relative;}
-  .odot{position:absolute;bottom:1px;right:1px;width:11px;height:11px;background:#4ade80;border-radius:50%;border:2px solid var(--bg);}
   .cinf{flex:1;min-width:0;}
   .cname{font-size:14px;font-weight:600;}
   .cprev{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
   .cmeta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
   .ctime{font-size:10px;color:var(--muted);}
-  .ubadge{background:var(--accent);color:#000;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;}
   .cwin{display:flex;flex-direction:column;height:100vh;}
   .cwh{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(10,10,10,0.97);}
   .backbtn{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0;}
@@ -218,8 +209,15 @@ const css = `
   .post-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
   .feed-empty{text-align:center;padding:40px 0;color:var(--muted);font-size:14px;}
   .post-content{padding:10px 14px;font-size:14px;line-height:1.55;white-space:pre-wrap;color:var(--text);}
-
-  /* ── EDIT MODE styles ── */
+  /* today-workout banner */
+  .today-banner{background:linear-gradient(135deg,rgba(232,255,71,0.12),rgba(255,107,53,0.08));border:1px solid rgba(232,255,71,0.2);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.18s;}
+  .today-banner:hover{border-color:var(--accent);}
+  .today-banner-icon{font-size:28px;flex-shrink:0;}
+  .today-banner-text{flex:1;}
+  .today-banner-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .today-banner-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);letter-spacing:1px;margin-top:2px;}
+  .today-banner-arrow{font-size:18px;color:var(--muted);}
+  /* edit mode */
   .edit-mode-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(232,255,71,0.06);border-bottom:1px solid rgba(232,255,71,0.15);}
   .edit-mode-label{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
   .edit-toggle-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.18s;}
@@ -228,10 +226,8 @@ const css = `
   .ex-edit-row:last-child{border-bottom:none;}
   .ex-name-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;outline:none;}
   .ex-name-input:focus{border-color:var(--accent);}
-  .ex-sets-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;}
-  .ex-sets-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:center;width:100%;}
+  .ex-sets-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:left;width:100%;}
   .ex-sets-input:focus{border-color:var(--accent);}
-  .ex-sets-label{font-size:9px;color:var(--muted);text-align:center;margin-top:2px;}
   .ex-delete-btn{width:28px;height:28px;border-radius:8px;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.2);color:var(--accent2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .add-ex-inline{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);}
   .add-ex-inline input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
@@ -243,27 +239,14 @@ const css = `
 const wdays = ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
 const bars = [40,70,55,90,65,30,0];
 
-// Початковий план — тепер як константа для ініціалізації useState
 const DEFAULT_WPLAN = {
-  "Пн":{t:"ГРУДИ / ТРИЦЕПС",m:"Push",ex:[{n:"Жим штанги лежачи",s:"4×8-10",d:"відпочинок 2хв"},{n:"Жим гантелей під кутом",s:"3×10-12",d:"відпочинок 90сек"},{n:"Кросовер",s:"3×15",d:"відпочинок 60сек"},{n:"Французький жим",s:"3×12",d:"відпочинок 90сек"}]},
-  "Вт":{t:"СПИНА / БІЦЕПС",m:"Pull",ex:[{n:"Підтягування",s:"4×max",d:"відпочинок 2хв"},{n:"Тяга штанги в нахилі",s:"4×8",d:"відпочинок 2хв"},{n:"Тяга верхнього блоку",s:"3×12",d:"відпочинок 90сек"},{n:"Підйом на біцепс",s:"4×10",d:"відпочинок 90сек"}]},
+  "Пн":{t:"ГРУДИ / ТРИЦЕПС",m:"Push",ex:[{n:"Жим штанги лежачи",s:"4×8-10",d:""},{n:"Жим гантелей під кутом",s:"3×10-12",d:""},{n:"Кросовер",s:"3×15",d:""},{n:"Французький жим",s:"3×12",d:""}]},
+  "Вт":{t:"СПИНА / БІЦЕПС",m:"Pull",ex:[{n:"Підтягування",s:"4×max",d:""},{n:"Тяга штанги в нахилі",s:"4×8",d:""},{n:"Тяга верхнього блоку",s:"3×12",d:""},{n:"Підйом на біцепс",s:"4×10",d:""}]},
   "Ср":{t:"ВІДПОЧИНОК",m:"Rest",ex:[]},
-  "Чт":{t:"НОГИ",m:"Legs",ex:[{n:"Присідання зі штангою",s:"5×5",d:"відпочинок 3хв"},{n:"Жим ногами",s:"4×10",d:"відпочинок 2хв"},{n:"Румунська тяга",s:"3×10",d:"відпочинок 2хв"},{n:"Розгинання ніг",s:"3×15",d:"відпочинок 60сек"}]},
-  "Пт":{t:"ПЛЕЧІ / ПРЕС",m:"Shoulders",ex:[{n:"Жим гантелей сидячи",s:"4×10",d:"відпочинок 2хв"},{n:"Розведення в сторони",s:"3×15",d:"відпочинок 60сек"},{n:"Планка",s:"3×60сек",d:"відпочинок 60сек"},{n:"Скручування",s:"3×20",d:"відпочинок 45сек"}]},
+  "Чт":{t:"НОГИ",m:"Legs",ex:[{n:"Присідання зі штангою",s:"5×5",d:""},{n:"Жим ногами",s:"4×10",d:""},{n:"Румунська тяга",s:"3×10",d:""},{n:"Розгинання ніг",s:"3×15",d:""}]},
+  "Пт":{t:"ПЛЕЧІ / ПРЕС",m:"Shoulders",ex:[{n:"Жим гантелей сидячи",s:"4×10",d:""},{n:"Розведення в сторони",s:"3×15",d:""},{n:"Планка",s:"3×60сек",d:""},{n:"Скручування",s:"3×20",d:""}]},
   "Сб":{t:"КАРДІО",m:"Cardio",ex:[]},
   "Нд":{t:"ВІДПОЧИНОК",m:"Rest",ex:[]},
-};
-
-const chatsData = [
-  {id:1,name:"Олексій К.",ini:"ОК",col:"#ff6b35",online:true,prev:"Братан, який протеїн береш?",time:"10хв",unread:2},
-  {id:2,name:"Марина В.",ini:"МВ",col:"#7c3aed",online:true,prev:"Красиво відпрацювала 🔥",time:"1год",unread:0},
-  {id:3,name:"Сергій Т.",ini:"СТ",col:"#0ea5e9",online:false,prev:"Завтра ноги, йдеш?",time:"3год",unread:1},
-  {id:4,name:"Аня Л.",ini:"АЛ",col:"#d946ef",online:true,prev:"Дякую за пораду!",time:"вчора",unread:0},
-];
-
-const initMsgs = {
-  1:[{id:1,from:"th",text:"Привіт! Бачив твій рекорд 💪",time:"10:32"},{id:2,from:"me",text:"Дякую! Довго йшов до цього)",time:"10:33"},{id:3,from:"th",text:"Братан, який протеїн береш?",time:"10:35"}],
-  2:[],3:[{id:1,from:"th",text:"Завтра ноги, йдеш?",time:"вчора"}],4:[]
 };
 
 const peopleRecs = {
@@ -288,19 +271,16 @@ const allProducts = [
 ];
 
 const COLORS = ["#ff6b35","#7c3aed","#0ea5e9","#d946ef","#10b981","#ef4444","#f59e0b","#3b82f6"];
-
 function getColor(str) {
   if (!str) return COLORS[0];
   let h = 0;
   for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
   return COLORS[Math.abs(h) % COLORS.length];
 }
-
 function getIni(name) {
   if (!name) return "IC";
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
-
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
@@ -309,15 +289,16 @@ function timeAgo(iso) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} год тому`;
   return `${Math.floor(diff / 86400)} дн тому`;
 }
-
 function formatDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("uk-UA", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function IronCrew({ user }) {
+  const todayKey = ["Нд","Пн","Вт","Ср","Чт","Пт","Сб"][new Date().getDay()];
+
   const [tab, setTab] = useState("feed");
-  const [aday, setAday] = useState(() => ["Нд","Пн","Вт","Ср","Чт","Пт","Сб"][new Date().getDay()]);
+  const [aday, setAday] = useState(todayKey);
   const [period, setPeriod] = useState("Тиждень");
   const [checked, setChecked] = useState({});
   const [openChat, setOpenChat] = useState(null);
@@ -336,8 +317,6 @@ export default function IronCrew({ user }) {
   const [editName, setEditName] = useState("");
   const [editGym, setEditGym] = useState("");
   const [editCity, setEditCity] = useState("");
-
-  // Етап 3 — додавання тренувань
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDuration, setNewDuration] = useState("");
@@ -345,8 +324,6 @@ export default function IronCrew({ user }) {
   const [newExInput, setNewExInput] = useState("");
   const [newExList, setNewExList] = useState([]);
   const [savingWorkout, setSavingWorkout] = useState(false);
-
-  // ── Стрічка ──
   const [feedPosts, setFeedPosts] = useState([]);
   const [postLikes, setPostLikes] = useState({});
   const [myLikes, setMyLikes] = useState({});
@@ -355,11 +332,7 @@ export default function IronCrew({ user }) {
   const [newPostText, setNewPostText] = useState("");
   const [postingText, setPostingText] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
-
-  // ── Чат ──
   const [realUsers, setRealUsers] = useState([]);
-
-  // ── Таймер ── (всі useState всередині компонента — правильно!)
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [selectedEx, setSelectedEx] = useState(null);
@@ -367,31 +340,23 @@ export default function IronCrew({ user }) {
   const [exReps, setExReps] = useState("");
   const [exWeight, setExWeight] = useState("");
   const [savedSets, setSavedSets] = useState({});
-
-  // ── НОВИЙ СПРИНТ 3: Редагування плану ──
-  // wplan тепер useState — можна редагувати
   const [wplan, setWplan] = useState(DEFAULT_WPLAN);
-  // Режим редагування (вмикається кнопкою "Редагувати")
   const [editMode, setEditMode] = useState(false);
-  // Поле для додавання нової вправи в режимі редагування
   const [newExName, setNewExName] = useState("");
 
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
-
   useEffect(() => {
     if (!timerActive) return;
     const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
     return () => clearInterval(interval);
   }, [timerActive]);
-
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("user_id", user.id).single()
       .then(({ data }) => { if (data) setProfile(data); });
   }, [user]);
-
   useEffect(() => {
     if (!user) return;
     supabase.from("workouts").select("*").eq("user_id", user.id)
@@ -403,8 +368,7 @@ export default function IronCrew({ user }) {
     setFeedLoading(true);
     const { data: posts, error } = await supabase.from("posts").select("*")
       .order("created_at", { ascending: false }).limit(50);
-    if (error) { setFeedLoading(false); return; }
-    if (!posts) { setFeedLoading(false); return; }
+    if (error || !posts) { setFeedLoading(false); return; }
     const postIds = posts.map(p => p.id);
     const { data: likesData } = postIds.length
       ? await supabase.from("likes").select("post_id, user_id").in("post_id", postIds)
@@ -473,6 +437,13 @@ export default function IronCrew({ user }) {
     setPostingText(false);
   };
 
+  // ── ВИДАЛЕННЯ ПОСТА (Спринт 5) ──
+  const deletePost = async (postId) => {
+    await supabase.from("likes").delete().eq("post_id", postId);
+    await supabase.from("posts").delete().eq("id", postId).eq("user_id", user.id);
+    setFeedPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
   const toggleLike = async (postId) => {
     const isLiked = myLikes[postId];
     setMyLikes(prev => ({ ...prev, [postId]: !isLiked }));
@@ -506,8 +477,7 @@ export default function IronCrew({ user }) {
     if (!newTitle.trim()) return;
     setSavingWorkout(true);
     const workout = {
-      user_id: user.id,
-      title: newTitle.trim(),
+      user_id: user.id, title: newTitle.trim(),
       duration: newDuration ? parseInt(newDuration) : null,
       volume: newVolume ? parseFloat(newVolume) : null,
       exercises: newExList,
@@ -541,9 +511,12 @@ export default function IronCrew({ user }) {
     setTab("chat");
   };
 
-  // ── ФУНКЦІЇ РЕДАГУВАННЯ ПЛАНУ (Спринт 3) ──
+  // ── ПЕРЕЙТИ НА СЬОГОДНІШНЄ ТРЕНУВАННЯ (Спринт 5) ──
+  const goToTodayWorkout = () => {
+    setAday(todayKey);
+    setTab("workout");
+  };
 
-  // Оновити назву вправи
   const updateExName = (day, index, newName) => {
     setWplan(prev => {
       const updated = { ...prev };
@@ -554,7 +527,6 @@ export default function IronCrew({ user }) {
     });
   };
 
-  // Оновити підходи (поле s — "4×8-10")
   const updateExSets = (day, index, newSets) => {
     setWplan(prev => {
       const updated = { ...prev };
@@ -565,47 +537,36 @@ export default function IronCrew({ user }) {
     });
   };
 
-  // Додати нову вправу до дня
   const addExToDay = (day) => {
     const name = newExName.trim();
     if (!name) return;
     setWplan(prev => {
       const updated = { ...prev };
-      updated[day] = {
-        ...updated[day],
-        ex: [...updated[day].ex, { n: name, s: "3×10", d: "" }],
-      };
+      updated[day] = { ...updated[day], ex: [...updated[day].ex, { n: name, s: "3×10", d: "" }] };
       return updated;
     });
     setNewExName("");
   };
 
-  // Видалити вправу з дня
   const deleteExFromDay = (day, index) => {
     setWplan(prev => {
       const updated = { ...prev };
-      updated[day] = {
-        ...updated[day],
-        ex: updated[day].ex.filter((_, i) => i !== index),
-      };
+      updated[day] = { ...updated[day], ex: updated[day].ex.filter((_, i) => i !== index) };
       return updated;
     });
-    // Знімаємо галочку якщо була
     const k = `${day}-${index}`;
     setChecked(c => { const n = { ...c }; delete n[k]; return n; });
   };
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
-
   const filteredTrainers = allTrainers.filter(t => {
     if (fGender !== "Всі" && t.gender !== fGender) return false;
     if (fFormat !== "Всі" && t.format !== fFormat) return false;
     return true;
   });
-
   const filteredProducts = shopCat === "Всі" ? allProducts : allProducts.filter(p => p.cat === shopCat);
-
   const plan = wplan[aday];
+  const todayPlan = wplan[todayKey];
 
   // ── ЧАТ ВІКНО ──
   if (openChat) {
@@ -660,13 +621,21 @@ export default function IronCrew({ user }) {
 
       <div className="scroll">
 
-        {/* ── СТРІЧКА ── */}
+        {/* ── СТРІЧКА (Спринт 5: без stories, з видаленням постів, з банером тренування) ── */}
         {tab === "feed" && (<>
-          <div className="stories">
-            {[{e:"💪",n:"Олексій",s:false},{e:"🏋️",n:"Марина",s:false},{e:"🔥",n:"Сергій",s:true},{e:"⚡",n:"Аня",s:false},{e:"🎯",n:"Дмитро",s:true}].map((x,i) => (
-              <div className="story" key={i}><div className={`sring${x.s ? " seen" : ""}`}><div className="sinner">{x.e}</div></div><span className="sname">{x.n}</span></div>
-            ))}
-          </div>
+
+          {/* Банер сьогоднішнього тренування */}
+          {todayPlan.ex.length > 0 && (
+            <div className="today-banner" onClick={goToTodayWorkout}>
+              <div className="today-banner-icon">🏋️</div>
+              <div className="today-banner-text">
+                <div className="today-banner-label">Сьогодні · {todayKey}</div>
+                <div className="today-banner-title">{todayPlan.t}</div>
+              </div>
+              <div className="today-banner-arrow">→</div>
+            </div>
+          )}
+
           <div className="post-composer">
             <textarea
               placeholder="Поділись своїм тренуванням... 💪"
@@ -680,6 +649,7 @@ export default function IronCrew({ user }) {
               </button>
             </div>
           </div>
+
           <div className="stitle">СТРІЧКА <span>АКТИВНОСТІ</span></div>
           {feedLoading && <div style={{ textAlign: "center", color: "var(--muted)", padding: 30 }}>Завантаження...</div>}
           {!feedLoading && feedPosts.length === 0 && (
@@ -715,7 +685,10 @@ export default function IronCrew({ user }) {
                     </button>
                   )}
                   <div className="sp" />
-                  {!isMe && (
+                  {/* Видалення для своїх постів */}
+                  {isMe ? (
+                    <button className="abtn danger" onClick={() => { if (window.confirm("Видалити пост?")) deletePost(post.id); }}>🗑</button>
+                  ) : (
                     <button className="abtn" onClick={() => openChatWith({ id: post.user_id, userId: post.user_id, name: authorName, ini, col })}>✉️</button>
                   )}
                 </div>
@@ -724,11 +697,10 @@ export default function IronCrew({ user }) {
           })}
         </>)}
 
-        {/* ── ПРОГРАМА (оновлено Спринт 3) ── */}
+        {/* ── ПРОГРАМА ── */}
         {tab === "workout" && (<>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
             <div className="stitle" style={{ marginBottom: 0 }}>МОЯ <span>ПРОГРАМА</span></div>
-            {/* Кнопка вмикання режиму редагування */}
             <button
               className={`edit-toggle-btn${editMode ? " active" : ""}`}
               onClick={() => { setEditMode(m => !m); setNewExName(""); }}
@@ -737,46 +709,37 @@ export default function IronCrew({ user }) {
             </button>
           </div>
           <div className="sub">Тижневий план тренувань</div>
-          <div className="dtabs">{wdays.map(d => <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>{d}</button>)}</div>
+          <div className="dtabs">{wdays.map(d => (
+            <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>
+              {d}{d === todayKey ? " 📍" : ""}
+            </button>
+          ))}</div>
 
           {plan.ex.length > 0 || editMode ? (
             <div className="wcard">
-              {/* Заголовок дня */}
               <div className="wch">
                 <div className="wct">{plan.t}</div>
                 <div className="mtag">{plan.m}</div>
               </div>
-
-              {/* Підказка в режимі редагування */}
               {editMode && (
                 <div className="edit-mode-bar">
                   <span className="edit-mode-label">✏️ Режим редагування</span>
                   <span style={{ fontSize: 11, color: "var(--muted)" }}>Змінюй прямо в картці</span>
                 </div>
               )}
-
-              {/* Список вправ */}
               {plan.ex.length === 0 && editMode && (
-                <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
-                  Додай першу вправу 👇
-                </div>
+                <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Додай першу вправу 👇</div>
               )}
-
               {plan.ex.map((ex, i) => {
                 const k = `${aday}-${i}`;
                 const done = checked[k];
-
-                // ── РЕЖИМ ПЕРЕГЛЯДУ (звичайний) ──
                 if (!editMode) {
                   return (
                     <div className="exi" key={i}>
                       <div className="enum">{i + 1}</div>
                       <div style={{ flex: 1 }}>
-                        <div
-                          className="exn"
-                          style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}
-                          onClick={() => { setSelectedEx({ name: ex.n, key: k }); setExSets(""); setExReps(""); setExWeight(""); }}
-                        >
+                        <div className="exn" style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}
+                          onClick={() => { setSelectedEx({ name: ex.n, key: k }); setExSets(""); setExReps(""); setExWeight(""); }}>
                           {ex.n}
                         </div>
                         <div className="exd">{ex.s}</div>
@@ -790,55 +753,23 @@ export default function IronCrew({ user }) {
                     </div>
                   );
                 }
-
-                // ── РЕЖИМ РЕДАГУВАННЯ (inline) ──
                 return (
                   <div className="ex-edit-row" key={i}>
-                    {/* Рядок 1: номер + назва + кнопка видалення */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div className="enum" style={{ flexShrink: 0 }}>{i + 1}</div>
-                      <input
-                        className="ex-name-input"
-                        value={ex.n}
-                        onChange={e => updateExName(aday, i, e.target.value)}
-                        placeholder="Назва вправи"
-                      />
-                      <button
-                        className="ex-delete-btn"
-                        onClick={() => deleteExFromDay(aday, i)}
-                        title="Видалити вправу"
-                      >
-                        ✕
-                      </button>
+                      <input className="ex-name-input" value={ex.n} onChange={e => updateExName(aday, i, e.target.value)} placeholder="Назва вправи" />
+                      <button className="ex-delete-btn" onClick={() => deleteExFromDay(aday, i)}>✕</button>
                     </div>
-                    {/* Рядок 2: підходи/повторення (поле s) */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 36 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 9, color: "var(--muted)", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          Підходи × Повторення
-                        </div>
-                        <input
-                          className="ex-sets-input"
-                          value={ex.s}
-                          onChange={e => updateExSets(aday, i, e.target.value)}
-                          placeholder="4×8-10"
-                          style={{ textAlign: "left", width: "100%" }}
-                        />
-                      </div>
+                    <div style={{ paddingLeft: 36 }}>
+                      <div style={{ fontSize: 9, color: "var(--muted)", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.5px" }}>Підходи × Повторення</div>
+                      <input className="ex-sets-input" value={ex.s} onChange={e => updateExSets(aday, i, e.target.value)} placeholder="4×8-10" />
                     </div>
                   </div>
                 );
               })}
-
-              {/* Додати нову вправу (тільки в режимі редагування) */}
               {editMode && (
                 <div className="add-ex-inline">
-                  <input
-                    value={newExName}
-                    onChange={e => setNewExName(e.target.value)}
-                    placeholder="Назва нової вправи..."
-                    onKeyDown={e => e.key === "Enter" && addExToDay(aday)}
-                  />
+                  <input value={newExName} onChange={e => setNewExName(e.target.value)} placeholder="Назва нової вправи..." onKeyDown={e => e.key === "Enter" && addExToDay(aday)} />
                   <button onClick={() => addExToDay(aday)}>+</button>
                 </div>
               )}
@@ -850,7 +781,6 @@ export default function IronCrew({ user }) {
             </div>
           )}
 
-          {/* Модалка підходів/повторень/ваги (тільки в режимі перегляду) */}
           {selectedEx && !editMode && (
             <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
               <div style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 420, padding: "24px 20px 40px" }}>
@@ -860,28 +790,21 @@ export default function IronCrew({ user }) {
                   {[["ПІДХОДИ", exSets, setExSets], ["ПОВТОРЕННЯ", exReps, setExReps], ["ВАГА (кг)", exWeight, setExWeight]].map(([lbl, val, setter]) => (
                     <div key={lbl}>
                       <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{lbl}</div>
-                      <input
-                        style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, color: "var(--text)", fontSize: 16, textAlign: "center" }}
-                        type="number" value={val} onChange={e => setter(e.target.value)}
-                      />
+                      <input style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, color: "var(--text)", fontSize: 16, textAlign: "center" }}
+                        type="number" value={val} onChange={e => setter(e.target.value)} />
                     </div>
                   ))}
                 </div>
-                <button
-                  style={{ width: "100%", background: "var(--accent)", color: "#000", border: "none", borderRadius: 14, padding: 16, fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, cursor: "pointer" }}
+                <button style={{ width: "100%", background: "var(--accent)", color: "#000", border: "none", borderRadius: 14, padding: 16, fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, cursor: "pointer" }}
                   onClick={async () => {
                     await supabase.from("workout_sets").insert({
-                      user_id: user.id,
-                      exercise_name: selectedEx.name,
-                      sets: exSets ? parseInt(exSets) : null,
-                      reps: exReps ? parseInt(exReps) : null,
-                      weight: exWeight ? parseFloat(exWeight) : null,
-                      day: aday,
+                      user_id: user.id, exercise_name: selectedEx.name,
+                      sets: exSets ? parseInt(exSets) : null, reps: exReps ? parseInt(exReps) : null,
+                      weight: exWeight ? parseFloat(exWeight) : null, day: aday,
                     });
                     setSavedSets(prev => ({ ...prev, [selectedEx.key]: { sets: exSets, reps: exReps, weight: exWeight } }));
                     setSelectedEx(null);
-                  }}
-                >
+                  }}>
                   💾 ЗБЕРЕГТИ ПІДХІД
                 </button>
                 <button style={{ width: "100%", background: "none", border: "none", color: "var(--muted)", padding: 12, cursor: "pointer", marginTop: 8 }} onClick={() => setSelectedEx(null)}>Скасувати</button>
@@ -889,12 +812,9 @@ export default function IronCrew({ user }) {
             </div>
           )}
 
-          {/* Таймер (тільки в режимі перегляду) */}
           {!editMode && plan.ex.length > 0 && (
             !timerActive ? (
-              <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
-                ▶ ЄБАШ!
-              </button>
+              <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>▶ ЄБАШ!</button>
             ) : (
               <div style={{ marginTop: 12 }}>
                 <div style={{ background: "var(--accent)", borderRadius: 16, padding: "20px", textAlign: "center", marginBottom: 10 }}>
@@ -903,22 +823,13 @@ export default function IronCrew({ user }) {
                   </div>
                   <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
                 </div>
-                <button
-                  className="sbtn"
-                  style={{
-                    background: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "var(--accent2)" : "var(--border)",
-                    cursor: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "pointer" : "not-allowed",
-                  }}
+                <button className="sbtn"
+                  style={{ background: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "var(--accent2)" : "var(--border)", cursor: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "pointer" : "not-allowed" }}
                   disabled={Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length === 0}
                   onClick={async () => {
-                    await supabase.from("workouts").insert({
-                      user_id: user.id, title: plan.t,
-                      duration: Math.floor(timerSeconds / 60), volume: null,
-                      exercises: plan.ex.map(e => e.n),
-                    });
+                    await supabase.from("workouts").insert({ user_id: user.id, title: plan.t, duration: Math.floor(timerSeconds / 60), volume: null, exercises: plan.ex.map(e => e.n) });
                     setTimerActive(false); setTimerSeconds(0); setSavedSets({});
-                  }}
-                >
+                  }}>
                   ⏹ ВСЬО НАХОЙ
                 </button>
               </div>
@@ -1037,11 +948,7 @@ export default function IronCrew({ user }) {
         {tab === "chat" && (<>
           <div className="stitle">ПОВІДОМЛЕННЯ</div>
           <div className="sbar"><span style={{ fontSize: 16, color: "var(--muted)" }}>🔍</span><input placeholder="Пошук..." /></div>
-          {realUsers.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--muted)", padding: 30, fontSize: 13 }}>
-              Поки що немає інших користувачів
-            </div>
-          )}
+          {realUsers.length === 0 && <div style={{ textAlign: "center", color: "var(--muted)", padding: 30, fontSize: 13 }}>Поки що немає інших користувачів</div>}
           {realUsers.map(u => {
             const col = getColor(u.user_id);
             const ini = getIni(u.name);
