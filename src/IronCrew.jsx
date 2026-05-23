@@ -614,7 +614,7 @@ export default function IronCrew({ user }) {
         <div className="logo">IRON<span>CREW</span></div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {tab === "find" && findTab === "shop" && <div className="icon-btn" style={{ position: "relative" }}>🛒{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</div>}
-          <div className="icon-btn">🔔<div className="ndot" /></div>
+          <div className="icon-btn" onClick={() => setTab("workout")} style={{cursor:"pointer"}}>🔔<div className="ndot" /></div>
           <div className="ava-sm">{getIni(profile?.name)}</div>
         </div>
       </div>
