@@ -210,7 +210,6 @@ const css = `
   .empty-workouts{text-align:center;padding:30px 0 10px;}
   .empty-workouts .big-icon{font-size:48px;margin-bottom:10px;}
   .empty-workouts p{font-size:13px;color:var(--muted);}
-  /* ── ETAP 4: POST COMPOSER ── */
   .post-composer{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:16px;}
   .post-composer textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:none;min-height:80px;}
   .post-composer textarea:focus{border-color:var(--accent);}
@@ -219,12 +218,33 @@ const css = `
   .post-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
   .feed-empty{text-align:center;padding:40px 0;color:var(--muted);font-size:14px;}
   .post-content{padding:10px 14px;font-size:14px;line-height:1.55;white-space:pre-wrap;color:var(--text);}
+
+  /* ── EDIT MODE styles ── */
+  .edit-mode-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(232,255,71,0.06);border-bottom:1px solid rgba(232,255,71,0.15);}
+  .edit-mode-label{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+  .edit-toggle-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.18s;}
+  .edit-toggle-btn.active{background:var(--accent);border-color:var(--accent);color:#000;}
+  .ex-edit-row{display:flex;flex-direction:column;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);}
+  .ex-edit-row:last-child{border-bottom:none;}
+  .ex-name-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;outline:none;}
+  .ex-name-input:focus{border-color:var(--accent);}
+  .ex-sets-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;}
+  .ex-sets-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;text-align:center;width:100%;}
+  .ex-sets-input:focus{border-color:var(--accent);}
+  .ex-sets-label{font-size:9px;color:var(--muted);text-align:center;margin-top:2px;}
+  .ex-delete-btn{width:28px;height:28px;border-radius:8px;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.2);color:var(--accent2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .add-ex-inline{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);}
+  .add-ex-inline input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+  .add-ex-inline input:focus{border-color:var(--accent);}
+  .add-ex-inline input::placeholder{color:var(--muted);}
+  .add-ex-inline button{background:var(--accent);border:none;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;color:#000;flex-shrink:0;}
 `;
 
 const wdays = ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
 const bars = [40,70,55,90,65,30,0];
 
-const wplan = {
+// Початковий план — тепер як константа для ініціалізації useState
+const DEFAULT_WPLAN = {
   "Пн":{t:"ГРУДИ / ТРИЦЕПС",m:"Push",ex:[{n:"Жим штанги лежачи",s:"4×8-10",d:"відпочинок 2хв"},{n:"Жим гантелей під кутом",s:"3×10-12",d:"відпочинок 90сек"},{n:"Кросовер",s:"3×15",d:"відпочинок 60сек"},{n:"Французький жим",s:"3×12",d:"відпочинок 90сек"}]},
   "Вт":{t:"СПИНА / БІЦЕПС",m:"Pull",ex:[{n:"Підтягування",s:"4×max",d:"відпочинок 2хв"},{n:"Тяга штанги в нахилі",s:"4×8",d:"відпочинок 2хв"},{n:"Тяга верхнього блоку",s:"3×12",d:"відпочинок 90сек"},{n:"Підйом на біцепс",s:"4×10",d:"відпочинок 90сек"}]},
   "Ср":{t:"ВІДПОЧИНОК",m:"Rest",ex:[]},
@@ -316,7 +336,8 @@ export default function IronCrew({ user }) {
   const [editName, setEditName] = useState("");
   const [editGym, setEditGym] = useState("");
   const [editCity, setEditCity] = useState("");
-  // Етап 3
+
+  // Етап 3 — додавання тренувань
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDuration, setNewDuration] = useState("");
@@ -324,7 +345,8 @@ export default function IronCrew({ user }) {
   const [newExInput, setNewExInput] = useState("");
   const [newExList, setNewExList] = useState([]);
   const [savingWorkout, setSavingWorkout] = useState(false);
-  // ── Етап 4 ──
+
+  // ── Стрічка ──
   const [feedPosts, setFeedPosts] = useState([]);
   const [postLikes, setPostLikes] = useState({});
   const [myLikes, setMyLikes] = useState({});
@@ -333,25 +355,37 @@ export default function IronCrew({ user }) {
   const [newPostText, setNewPostText] = useState("");
   const [postingText, setPostingText] = useState(false);
   const [feedLoading, setFeedLoading] = useState(true);
-  // ── Реальні користувачі для чату ──
+
+  // ── Чат ──
   const [realUsers, setRealUsers] = useState([]);
+
+  // ── Таймер ── (всі useState всередині компонента — правильно!)
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [selectedEx, setSelectedEx] = useState(null);
-const [exSets, setExSets] = useState("");
-const [exReps, setExReps] = useState("");
-const [exWeight, setExWeight] = useState("");
-const [savedSets, setSavedSets] = useState({});
+  const [exSets, setExSets] = useState("");
+  const [exReps, setExReps] = useState("");
+  const [exWeight, setExWeight] = useState("");
+  const [savedSets, setSavedSets] = useState({});
+
+  // ── НОВИЙ СПРИНТ 3: Редагування плану ──
+  // wplan тепер useState — можна редагувати
+  const [wplan, setWplan] = useState(DEFAULT_WPLAN);
+  // Режим редагування (вмикається кнопкою "Редагувати")
+  const [editMode, setEditMode] = useState(false);
+  // Поле для додавання нової вправи в режимі редагування
+  const [newExName, setNewExName] = useState("");
 
   const endRef = useRef(null);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
+
   useEffect(() => {
-  if (!timerActive) return;
-  const interval = setInterval(() => {
-    setTimerSeconds(s => s + 1);
-  }, 1000);
-  return () => clearInterval(interval);
-}, [timerActive]);
+    if (!timerActive) return;
+    const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [timerActive]);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("user_id", user.id).single()
@@ -365,15 +399,11 @@ const [savedSets, setSavedSets] = useState({});
       .then(({ data }) => { if (data) setWorkouts(data); });
   }, [user]);
 
-  // Завантаження стрічки
   const loadFeed = async () => {
     setFeedLoading(true);
-    const { data: posts, error } = await supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) { console.error("loadFeed error:", error); setFeedLoading(false); return; }
+    const { data: posts, error } = await supabase.from("posts").select("*")
+      .order("created_at", { ascending: false }).limit(50);
+    if (error) { setFeedLoading(false); return; }
     if (!posts) { setFeedLoading(false); return; }
     const postIds = posts.map(p => p.id);
     const { data: likesData } = postIds.length
@@ -393,69 +423,41 @@ const [savedSets, setSavedSets] = useState({});
 
   useEffect(() => { if (user) loadFeed(); }, [user]);
 
-  // Завантаження реальних користувачів для чату
   useEffect(() => {
-  if (!user) return;
-  supabase.from("profiles").select("user_id, name, gym, city")
-    .neq("user_id", user.id)
-    .then(async ({ data }) => {
-      if (!data) return;
-      const withMsg = await Promise.all(data.map(async (p) => {
-        const { data: msgs } = await supabase
-          .from("messages")
-          .select("content, created_at")
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${p.user_id}),and(sender_id.eq.${p.user_id},receiver_id.eq.${user.id})`)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        return { ...p, lastMsg: msgs?.[0]?.content || null };
-      }));
-      setRealUsers(withMsg);
-    });
-}, [user]);
+    if (!user) return;
+    supabase.from("profiles").select("user_id, name, gym, city").neq("user_id", user.id)
+      .then(async ({ data }) => {
+        if (!data) return;
+        const withMsg = await Promise.all(data.map(async (p) => {
+          const { data: msgs } = await supabase.from("messages").select("content, created_at")
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${p.user_id}),and(sender_id.eq.${p.user_id},receiver_id.eq.${user.id})`)
+            .order("created_at", { ascending: false }).limit(1);
+          return { ...p, lastMsg: msgs?.[0]?.content || null };
+        }));
+        setRealUsers(withMsg);
+      });
+  }, [user]);
 
-  // ── Завантаження повідомлень і Realtime ──
   useEffect(() => {
     if (!openChat || !user) return;
     setChatLoading(true);
     const otherId = openChat.userId;
-
-    // Завантажити історію
-    supabase.from("messages")
-      .select("*")
+    supabase.from("messages").select("*")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        setChatMsgsReal(data || []);
-        setChatLoading(false);
-      });
-
-    // Realtime підписка
+      .then(({ data }) => { setChatMsgsReal(data || []); setChatLoading(false); });
     const channel = supabase.channel(`chat_${user.id}_${otherId}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `receiver_id=eq.${user.id}`,
-      }, (payload) => {
-        if (payload.new.sender_id === otherId) {
-          setChatMsgsReal(prev => [...prev, payload.new]);
-        }
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        (payload) => { if (payload.new.sender_id === otherId) setChatMsgsReal(prev => [...prev, payload.new]); })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [openChat, user]);
 
-  // Завантаження follows
   useEffect(() => {
     if (!user) return;
     supabase.from("follows").select("following_id").eq("follower_id", user.id)
       .then(({ data }) => {
-        if (data) {
-          const map = {};
-          data.forEach(f => { map[f.following_id] = true; });
-          setFollowed(map);
-        }
+        if (data) { const map = {}; data.forEach(f => { map[f.following_id] = true; }); setFollowed(map); }
       });
     Promise.all([
       supabase.from("follows").select("id", { count: "exact" }).eq("following_id", user.id),
@@ -463,22 +465,14 @@ const [savedSets, setSavedSets] = useState({});
     ]).then(([r1, r2]) => setFollowCounts({ followers: r1.count || 0, following: r2.count || 0 }));
   }, [user]);
 
-  // Опублікувати пост
   const submitPost = async () => {
     if (!newPostText.trim() || postingText) return;
     setPostingText(true);
-    const { data, error } = await supabase
-      .from("posts")
-      .insert([{ user_id: user.id, content: newPostText.trim() }])
-      .select("*");
-    if (!error && data) {
-      setFeedPosts(prev => [data[0], ...prev]);
-      setNewPostText("");
-    }
+    const { data, error } = await supabase.from("posts").insert([{ user_id: user.id, content: newPostText.trim() }]).select("*");
+    if (!error && data) { setFeedPosts(prev => [data[0], ...prev]); setNewPostText(""); }
     setPostingText(false);
   };
 
-  // Лайк / анлайк
   const toggleLike = async (postId) => {
     const isLiked = myLikes[postId];
     setMyLikes(prev => ({ ...prev, [postId]: !isLiked }));
@@ -490,7 +484,6 @@ const [savedSets, setSavedSets] = useState({});
     }
   };
 
-  // Підписатись / відписатись
   const toggleFollow = async (targetUserId) => {
     const isFollowing = followed[targetUserId];
     setFollowed(prev => ({ ...prev, [targetUserId]: !isFollowing }));
@@ -522,7 +515,6 @@ const [savedSets, setSavedSets] = useState({});
     const { data, error } = await supabase.from("workouts").insert([workout]).select();
     if (!error && data) {
       setWorkouts(prev => [data[0], ...prev]);
-      // Автоматично публікуємо пост
       const postContent = `💪 ${workout.title}` +
         (workout.duration ? ` · ⏱${workout.duration}хв` : "") +
         (workout.volume ? ` · 🏋️${workout.volume}т` : "") +
@@ -539,11 +531,7 @@ const [savedSets, setSavedSets] = useState({});
     if (!inp.trim() || !openChat) return;
     const content = inp.trim();
     setInp("");
-    const msg = {
-      sender_id: user.id,
-      receiver_id: openChat.userId,
-      content,
-    };
+    const msg = { sender_id: user.id, receiver_id: openChat.userId, content };
     const { data } = await supabase.from("messages").insert([msg]).select();
     if (data) setChatMsgsReal(prev => [...prev, data[0]]);
   };
@@ -553,15 +541,73 @@ const [savedSets, setSavedSets] = useState({});
     setTab("chat");
   };
 
+  // ── ФУНКЦІЇ РЕДАГУВАННЯ ПЛАНУ (Спринт 3) ──
+
+  // Оновити назву вправи
+  const updateExName = (day, index, newName) => {
+    setWplan(prev => {
+      const updated = { ...prev };
+      const exArr = [...updated[day].ex];
+      exArr[index] = { ...exArr[index], n: newName };
+      updated[day] = { ...updated[day], ex: exArr };
+      return updated;
+    });
+  };
+
+  // Оновити підходи (поле s — "4×8-10")
+  const updateExSets = (day, index, newSets) => {
+    setWplan(prev => {
+      const updated = { ...prev };
+      const exArr = [...updated[day].ex];
+      exArr[index] = { ...exArr[index], s: newSets };
+      updated[day] = { ...updated[day], ex: exArr };
+      return updated;
+    });
+  };
+
+  // Додати нову вправу до дня
+  const addExToDay = (day) => {
+    const name = newExName.trim();
+    if (!name) return;
+    setWplan(prev => {
+      const updated = { ...prev };
+      updated[day] = {
+        ...updated[day],
+        ex: [...updated[day].ex, { n: name, s: "3×10", d: "" }],
+      };
+      return updated;
+    });
+    setNewExName("");
+  };
+
+  // Видалити вправу з дня
+  const deleteExFromDay = (day, index) => {
+    setWplan(prev => {
+      const updated = { ...prev };
+      updated[day] = {
+        ...updated[day],
+        ex: updated[day].ex.filter((_, i) => i !== index),
+      };
+      return updated;
+    });
+    // Знімаємо галочку якщо була
+    const k = `${day}-${index}`;
+    setChecked(c => { const n = { ...c }; delete n[k]; return n; });
+  };
+
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
+
   const filteredTrainers = allTrainers.filter(t => {
     if (fGender !== "Всі" && t.gender !== fGender) return false;
     if (fFormat !== "Всі" && t.format !== fFormat) return false;
     return true;
   });
+
   const filteredProducts = shopCat === "Всі" ? allProducts : allProducts.filter(p => p.cat === shopCat);
+
   const plan = wplan[aday];
 
+  // ── ЧАТ ВІКНО ──
   if (openChat) {
     return (<><style>{css}</style>
       <div className="app"><div className="cwin">
@@ -621,8 +667,6 @@ const [savedSets, setSavedSets] = useState({});
               <div className="story" key={i}><div className={`sring${x.s ? " seen" : ""}`}><div className="sinner">{x.e}</div></div><span className="sname">{x.n}</span></div>
             ))}
           </div>
-
-          {/* Composer */}
           <div className="post-composer">
             <textarea
               placeholder="Поділись своїм тренуванням... 💪"
@@ -636,18 +680,14 @@ const [savedSets, setSavedSets] = useState({});
               </button>
             </div>
           </div>
-
           <div className="stitle">СТРІЧКА <span>АКТИВНОСТІ</span></div>
-
           {feedLoading && <div style={{ textAlign: "center", color: "var(--muted)", padding: 30 }}>Завантаження...</div>}
-
           {!feedLoading && feedPosts.length === 0 && (
             <div className="feed-empty">
               <div style={{ fontSize: 48, marginBottom: 12 }}>🏋️</div>
               <div>Поки що немає постів.<br />Додай тренування або напиши щось!</div>
             </div>
           )}
-
           {feedPosts.map((post, pi) => {
             const authorName = post.profiles?.name || "Користувач";
             const ini = getIni(authorName);
@@ -670,10 +710,7 @@ const [savedSets, setSavedSets] = useState({});
                     {isLiked ? "🔥" : "🤍"} {postLikes[post.id] || 0}
                   </button>
                   {!isMe && (
-                    <button
-                      className={`abtn${followed[post.user_id] ? " following" : ""}`}
-                      onClick={() => toggleFollow(post.user_id)}
-                    >
+                    <button className={`abtn${followed[post.user_id] ? " following" : ""}`} onClick={() => toggleFollow(post.user_id)}>
                       {followed[post.user_id] ? "✓ Підписаний" : "+ Підписатись"}
                     </button>
                   )}
@@ -687,87 +724,205 @@ const [savedSets, setSavedSets] = useState({});
           })}
         </>)}
 
-        {/* ── ПРОГРАМА ── */}
+        {/* ── ПРОГРАМА (оновлено Спринт 3) ── */}
         {tab === "workout" && (<>
-          <div className="stitle">МОЯ <span>ПРОГРАМА</span></div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <div className="stitle" style={{ marginBottom: 0 }}>МОЯ <span>ПРОГРАМА</span></div>
+            {/* Кнопка вмикання режиму редагування */}
+            <button
+              className={`edit-toggle-btn${editMode ? " active" : ""}`}
+              onClick={() => { setEditMode(m => !m); setNewExName(""); }}
+            >
+              {editMode ? "✓ ГОТОВО" : "✏️ РЕДАГУВАТИ"}
+            </button>
+          </div>
           <div className="sub">Тижневий план тренувань</div>
           <div className="dtabs">{wdays.map(d => <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>{d}</button>)}</div>
-          {plan.ex.length > 0 ? (<>
+
+          {plan.ex.length > 0 || editMode ? (
             <div className="wcard">
-              <div className="wch"><div className="wct">{plan.t}</div><div className="mtag">{plan.m}</div></div>
-              {plan.ex.map((ex, i) => { const k = `${aday}-${i}`; const done = checked[k]; return (
-                <div className="exi" key={i}>
-                  <div className="enum">{i+1}</div>
-                  <div className="exn" 
-  style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}
-  onClick={() => { setSelectedEx({ name: ex.n, key: k }); setExSets(""); setExReps(""); setExWeight(""); }}
->
-  {ex.n}
-</div>
-{savedSets[k] && (
-  <div style={{fontSize:11,color:"var(--accent)",fontWeight:700,marginTop:2}}>
-    {savedSets[k].sets}×{savedSets[k].reps} · {savedSets[k].weight}кг
-  </div>
-)}
-                  <button className={`cbtn${done ? " done" : ""}`} onClick={() => setChecked(c => ({ ...c, [k]: !c[k] }))}>{done ? "✓" : ""}</button>
+              {/* Заголовок дня */}
+              <div className="wch">
+                <div className="wct">{plan.t}</div>
+                <div className="mtag">{plan.m}</div>
+              </div>
+
+              {/* Підказка в режимі редагування */}
+              {editMode && (
+                <div className="edit-mode-bar">
+                  <span className="edit-mode-label">✏️ Режим редагування</span>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>Змінюй прямо в картці</span>
                 </div>
-              );})}
+              )}
+
+              {/* Список вправ */}
+              {plan.ex.length === 0 && editMode && (
+                <div style={{ padding: "16px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+                  Додай першу вправу 👇
+                </div>
+              )}
+
+              {plan.ex.map((ex, i) => {
+                const k = `${aday}-${i}`;
+                const done = checked[k];
+
+                // ── РЕЖИМ ПЕРЕГЛЯДУ (звичайний) ──
+                if (!editMode) {
+                  return (
+                    <div className="exi" key={i}>
+                      <div className="enum">{i + 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div
+                          className="exn"
+                          style={{ color: done ? "var(--muted)" : "var(--text)", textDecoration: done ? "line-through" : "none", cursor: "pointer" }}
+                          onClick={() => { setSelectedEx({ name: ex.n, key: k }); setExSets(""); setExReps(""); setExWeight(""); }}
+                        >
+                          {ex.n}
+                        </div>
+                        <div className="exd">{ex.s}</div>
+                        {savedSets[k] && (
+                          <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, marginTop: 2 }}>
+                            {savedSets[k].sets}×{savedSets[k].reps} · {savedSets[k].weight}кг
+                          </div>
+                        )}
+                      </div>
+                      <button className={`cbtn${done ? " done" : ""}`} onClick={() => setChecked(c => ({ ...c, [k]: !c[k] }))}>{done ? "✓" : ""}</button>
+                    </div>
+                  );
+                }
+
+                // ── РЕЖИМ РЕДАГУВАННЯ (inline) ──
+                return (
+                  <div className="ex-edit-row" key={i}>
+                    {/* Рядок 1: номер + назва + кнопка видалення */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className="enum" style={{ flexShrink: 0 }}>{i + 1}</div>
+                      <input
+                        className="ex-name-input"
+                        value={ex.n}
+                        onChange={e => updateExName(aday, i, e.target.value)}
+                        placeholder="Назва вправи"
+                      />
+                      <button
+                        className="ex-delete-btn"
+                        onClick={() => deleteExFromDay(aday, i)}
+                        title="Видалити вправу"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {/* Рядок 2: підходи/повторення (поле s) */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 36 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 9, color: "var(--muted)", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Підходи × Повторення
+                        </div>
+                        <input
+                          className="ex-sets-input"
+                          value={ex.s}
+                          onChange={e => updateExSets(aday, i, e.target.value)}
+                          placeholder="4×8-10"
+                          style={{ textAlign: "left", width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Додати нову вправу (тільки в режимі редагування) */}
+              {editMode && (
+                <div className="add-ex-inline">
+                  <input
+                    value={newExName}
+                    onChange={e => setNewExName(e.target.value)}
+                    placeholder="Назва нової вправи..."
+                    onKeyDown={e => e.key === "Enter" && addExToDay(aday)}
+                  />
+                  <button onClick={() => addExToDay(aday)}>+</button>
+                </div>
+              )}
             </div>
-            {selectedEx && (
-  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-    <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:420,padding:"24px 20px 40px"}}>
-      <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
-      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,marginBottom:20}}>{selectedEx.name}</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
-        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ПІДХОДИ</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="" value={exSets} onChange={e=>setExSets(e.target.value)}/></div>
-        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ПОВТОРЕННЯ</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="" value={exReps} onChange={e=>setExReps(e.target.value)}/></div>
-        <div><div style={{fontSize:11,color:"var(--muted)",marginBottom:6}}>ВАГА (кг)</div><input style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,padding:12,color:"var(--text)",fontSize:16,textAlign:"center"}} type="number" placeholder="" value={exWeight} onChange={e=>setExWeight(e.target.value)}/></div>
-      </div>
-      <button style={{width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:14,padding:16,fontFamily:"'Bebas Neue',sans-serif",fontSize:20,cursor:"pointer"}} onClick={async()=>{
-  await supabase.from("workout_sets").insert({
-    user_id:user.id,
-    exercise_name:selectedEx.name,
-    sets:exSets?parseInt(exSets):null,
-    reps:exReps?parseInt(exReps):null,
-    weight:exWeight?parseFloat(exWeight):null,
-    day:aday,
-  });
-  setSelectedEx(null);setSavedSets(prev => ({ ...prev, [selectedEx.key]: { sets: exSets, reps: exReps, weight: exWeight } }));
-}}>💾 НАЖМИ СЮДИ ДАУН</button>
-      <button style={{width:"100%",background:"none",border:"none",color:"var(--muted)",padding:12,cursor:"pointer",marginTop:8}} onClick={()=>setSelectedEx(null)}>Скасувати</button>
-    </div>
-  </div>
-)}
-{!timerActive ? (
-  <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
-    ▶ ЄБАШ!
-  </button>
-) : (
-  <div style={{ marginTop: 12 }}>
-    <div style={{ background: "var(--accent)", borderRadius: 16, padding: "20px", textAlign: "center", marginBottom: 10 }}>
-      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 48, color: "#000", letterSpacing: 2 }}>
-        {String(Math.floor(timerSeconds/3600)).padStart(2,"0")}:{String(Math.floor((timerSeconds%3600)/60)).padStart(2,"0")}:{String(timerSeconds%60).padStart(2,"0")}
-      </div>
-      <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
-    </div>
-    <button className="sbtn" style={{ background: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "var(--accent2)" : "var(--border)", cursor: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "pointer" : "not-allowed" }} disabled={Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length === 0} onClick={async () => {
-  await supabase.from("workouts").insert({
-    user_id: user.id,
-    title: plan.t,
-    duration: Math.floor(timerSeconds / 60),
-    volume: null,
-    exercises: plan.ex.map(e => e.n),
-  });
-  setTimerActive(false);
-  setTimerSeconds(0);
-  setSavedSets({});
-}}>
-      ⏹ ВСЬО НАХОЙ
-    </button>
-  </div>
-)}
-          </>) : (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}><div style={{ fontSize: 48, marginBottom: 12 }}>😴</div><div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22 }}>{plan.t}</div></div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>😴</div>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22 }}>{plan.t}</div>
+            </div>
+          )}
+
+          {/* Модалка підходів/повторень/ваги (тільки в режимі перегляду) */}
+          {selectedEx && !editMode && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+              <div style={{ background: "var(--surface)", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 420, padding: "24px 20px 40px" }}>
+                <div style={{ width: 40, height: 4, background: "var(--border)", borderRadius: 2, margin: "0 auto 20px" }} />
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, marginBottom: 20 }}>{selectedEx.name}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+                  {[["ПІДХОДИ", exSets, setExSets], ["ПОВТОРЕННЯ", exReps, setExReps], ["ВАГА (кг)", exWeight, setExWeight]].map(([lbl, val, setter]) => (
+                    <div key={lbl}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>{lbl}</div>
+                      <input
+                        style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, color: "var(--text)", fontSize: 16, textAlign: "center" }}
+                        type="number" value={val} onChange={e => setter(e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  style={{ width: "100%", background: "var(--accent)", color: "#000", border: "none", borderRadius: 14, padding: 16, fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, cursor: "pointer" }}
+                  onClick={async () => {
+                    await supabase.from("workout_sets").insert({
+                      user_id: user.id,
+                      exercise_name: selectedEx.name,
+                      sets: exSets ? parseInt(exSets) : null,
+                      reps: exReps ? parseInt(exReps) : null,
+                      weight: exWeight ? parseFloat(exWeight) : null,
+                      day: aday,
+                    });
+                    setSavedSets(prev => ({ ...prev, [selectedEx.key]: { sets: exSets, reps: exReps, weight: exWeight } }));
+                    setSelectedEx(null);
+                  }}
+                >
+                  💾 ЗБЕРЕГТИ ПІДХІД
+                </button>
+                <button style={{ width: "100%", background: "none", border: "none", color: "var(--muted)", padding: 12, cursor: "pointer", marginTop: 8 }} onClick={() => setSelectedEx(null)}>Скасувати</button>
+              </div>
+            </div>
+          )}
+
+          {/* Таймер (тільки в режимі перегляду) */}
+          {!editMode && plan.ex.length > 0 && (
+            !timerActive ? (
+              <button className="sbtn" onClick={() => { setTimerActive(true); setTimerSeconds(0); }}>
+                ▶ ЄБАШ!
+              </button>
+            ) : (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ background: "var(--accent)", borderRadius: 16, padding: "20px", textAlign: "center", marginBottom: 10 }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 48, color: "#000", letterSpacing: 2 }}>
+                    {String(Math.floor(timerSeconds / 3600)).padStart(2, "0")}:{String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, "0")}:{String(timerSeconds % 60).padStart(2, "0")}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#000", fontWeight: 600 }}>ТРЕНУВАННЯ ТРИВАЄ</div>
+                </div>
+                <button
+                  className="sbtn"
+                  style={{
+                    background: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "var(--accent2)" : "var(--border)",
+                    cursor: Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length > 0 ? "pointer" : "not-allowed",
+                  }}
+                  disabled={Object.keys(checked).filter(k => k.startsWith(aday) && checked[k]).length === 0}
+                  onClick={async () => {
+                    await supabase.from("workouts").insert({
+                      user_id: user.id, title: plan.t,
+                      duration: Math.floor(timerSeconds / 60), volume: null,
+                      exercises: plan.ex.map(e => e.n),
+                    });
+                    setTimerActive(false); setTimerSeconds(0); setSavedSets({});
+                  }}
+                >
+                  ⏹ ВСЬО НАХОЙ
+                </button>
+              </div>
+            )
           )}
         </>)}
 
@@ -805,7 +960,6 @@ const [savedSets, setSavedSets] = useState({});
               <button key={ft.id} className={`ftab${findTab===ft.id?" on":""}`} onClick={() => setFindTab(ft.id)}>{ft.l}</button>
             ))}
           </div>
-
           {findTab === "people" && (<>
             <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
               {[{id:"near",l:"📍 Поруч"},{id:"similar",l:"🎯 Схожий прогрес"}].map(s => (
@@ -830,7 +984,6 @@ const [savedSets, setSavedSets] = useState({});
               </div>
             ))}
           </>)}
-
           {findTab === "trainers" && (<>
             <div className="filter-bar">
               <div className="filter-row">
@@ -859,7 +1012,6 @@ const [savedSets, setSavedSets] = useState({});
               </div>
             ))}
           </>)}
-
           {findTab === "shop" && (<>
             <div className="shop-cats">{shopCats.map(c => <button key={c} className={`scat${shopCat===c?" on":""}`} onClick={() => setShopCat(c)}>{c}</button>)}</div>
             <div className="sgrid">{filteredProducts.map((p,i) => (
