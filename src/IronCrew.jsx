@@ -317,7 +317,7 @@ function formatDate(iso) {
 
 export default function IronCrew({ user }) {
   const [tab, setTab] = useState("feed");
-  const [aday, setAday] = useState("Пн");
+  const [aday, setAday] = useState(() => ["Нд","Пн","Вт","Ср","Чт","Пт","Сб"][new Date().getDay()]);
   const [period, setPeriod] = useState("Тиждень");
   const [checked, setChecked] = useState({});
   const [openChat, setOpenChat] = useState(null);
