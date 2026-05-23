@@ -898,7 +898,29 @@ export default function IronCrew({ user }) {
 
         {/* ── ЗНАЙТИ ── */}
         {tab === "find" && (<>
-          <div className="stitle">ЗНАЙТИ</div>
+          <div style={{position:"relative",minHeight:"60vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"40px 20px"}}>
+            {/* Розмитий фон зі старим контентом */}
+            <div style={{position:"absolute",inset:0,opacity:0.08,filter:"blur(4px)",pointerEvents:"none",overflow:"hidden"}}>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--text)",marginBottom:14}}>ЗНАЙТИ</div>
+              <div style={{display:"flex",gap:6,marginBottom:18,justifyContent:"center"}}>
+                {["👥 Люди","🎯 Тренери","🛍 Магазин"].map(l => <div key={l} style={{padding:"9px 16px",borderRadius:12,border:"1px solid var(--border)",background:"var(--surface)",color:"var(--muted)",fontSize:12}}>{l}</div>)}
+              </div>
+              {[1,2,3].map(i => <div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,padding:16,marginBottom:12,height:120}}/>)}
+            </div>
+            {/* Основний контент */}
+            <div style={{position:"relative",zIndex:1}}>
+              <div style={{fontSize:56,marginBottom:16}}>🚧</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
+              <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260}}>Тут з'являться реальні атлети з твого міста, тренери та магазин спортпіту</div>
+              <div style={{marginTop:24,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite"}}/>
+                <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
+              </div>
+            </div>
+          </div>
+          {/* Додаємо анімацію пульсу */}
+          <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}"}</style>
+          <div style={{display:"none"}}>
           <div className="ftabs">
             {[{id:"people",l:"👥 Люди"},{id:"trainers",l:"🎯 Тренери"},{id:"shop",l:"🛍 Магазин"}].map(ft => (
               <button key={ft.id} className={`ftab${findTab===ft.id?" on":""}`} onClick={() => setFindTab(ft.id)}>{ft.l}</button>
@@ -975,6 +997,7 @@ export default function IronCrew({ user }) {
               </div>
             ))}</div>
           </>)}
+          </div>{/* кінець hidden */}
         </>)}
 
         {/* ── ЧАТ ── */}
