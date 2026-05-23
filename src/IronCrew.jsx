@@ -37,10 +37,15 @@ const css = `
   .abtn.following{color:var(--accent);border-color:var(--accent);}
   .abtn.danger{color:var(--accent2);border-color:rgba(255,107,53,0.3);}
   .sp{flex:1;}
-  .dtabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px;padding-bottom:4px;}
-  .dtabs::-webkit-scrollbar{display:none;}
-  .dtab{flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;min-width:48px;}
+  .week-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .week-arrow{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.18s;}
+  .week-arrow:hover{border-color:var(--accent);color:var(--accent);}
+  .week-arrow:disabled{opacity:0.3;cursor:not-allowed;}
+  .week-label{flex:1;text-align:center;font-size:12px;color:var(--muted);font-weight:500;}
+  .dtabs{display:flex;gap:4px;margin-bottom:20px;width:100%;}
+  .dtab{flex:1;padding:8px 4px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;min-width:0;}
   .dtab.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+  .dtab.today{border-color:rgba(232,255,71,0.4);}
   .wcard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
   .wch{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
   .wct{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
@@ -343,6 +348,7 @@ export default function IronCrew({ user }) {
   const [wplan, setWplan] = useState(DEFAULT_WPLAN);
   const [editMode, setEditMode] = useState(false);
   const [newExName, setNewExName] = useState("");
+  const [weekOffset, setWeekOffset] = useState(0); // 0=поточний тиждень, 1=наступний...
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
   const endRef = useRef(null);
@@ -710,23 +716,37 @@ export default function IronCrew({ user }) {
             </button>
           </div>
           <div className="sub">Тижневий план тренувань</div>
-          <div className="dtabs">{wdays.map((d, i) => {
-            // Обчислюємо дату кожного дня поточного тижня
-            // Пн=0...Нд=6 в нашому масиві, JS: Нд=0,Пн=1...Сб=6
+          {(() => {
+            // Обчислюємо дати тижня з урахуванням weekOffset
             const jsToday = new Date().getDay(); // 0=Нд
-            const dayIndexInWeek = i === 6 ? 0 : i + 1; // Пн(0)->1, ..., Нд(6)->0
-            const diff = dayIndexInWeek - jsToday;
-            const date = new Date();
-            date.setDate(date.getDate() + diff);
-            const dateStr = date.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" });
-            const isToday = d === todayKey;
-            return (
-              <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>
-                <div style={{fontWeight:700}}>{d}{isToday ? " 📍" : ""}</div>
-                <div style={{fontSize:9,opacity:0.7,marginTop:2}}>{dateStr}</div>
-              </button>
-            );
-          })}</div>
+            // Початок поточного тижня (Пн)
+            const monday = new Date();
+            const daysToMon = (jsToday === 0 ? -6 : 1 - jsToday);
+            monday.setDate(monday.getDate() + daysToMon + weekOffset * 7);
+            // Мітка тижня
+            const weekEnd = new Date(monday); weekEnd.setDate(weekEnd.getDate() + 6);
+            const weekLabel = `${monday.toLocaleDateString("uk-UA",{day:"numeric",month:"short"})} – ${weekEnd.toLocaleDateString("uk-UA",{day:"numeric",month:"short"})}`;
+            return (<>
+              <div className="week-nav">
+                <button className="week-arrow" onClick={() => setWeekOffset(w => w - 1)}>‹</button>
+                <div className="week-label">{weekOffset === 0 ? "Цей тиждень" : weekOffset === 1 ? "Наступний тиждень" : weekLabel}</div>
+                <button className="week-arrow" onClick={() => setWeekOffset(w => w + 1)}>›</button>
+              </div>
+              <div className="dtabs">{wdays.map((d, i) => {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + i);
+                const dateStr = date.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" });
+                const isToday = weekOffset === 0 && d === todayKey;
+                return (
+                  <button key={d} className={`dtab${aday === d ? " on" : ""}${isToday && aday !== d ? " today" : ""}`} onClick={() => setAday(d)}>
+                    <div style={{fontWeight:700,fontSize:11}}>{d}</div>
+                    <div style={{fontSize:9,opacity:0.75,marginTop:2}}>{dateStr}</div>
+                    {isToday && <div style={{width:4,height:4,borderRadius:"50%",background: aday===d ? "#000" : "var(--accent)",marginTop:3}}/>}
+                  </button>
+                );
+              })}</div>
+            </>);
+          })()}
 
           {plan.ex.length > 0 || editMode ? (
             <div className="wcard">
