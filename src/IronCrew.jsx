@@ -39,7 +39,7 @@ const css = `
   .sp{flex:1;}
   .dtabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:20px;padding-bottom:4px;}
   .dtabs::-webkit-scrollbar{display:none;}
-  .dtab{flex-shrink:0;padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;}
+  .dtab{flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;min-width:48px;}
   .dtab.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
   .wcard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
   .wch{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);}
@@ -343,6 +343,7 @@ export default function IronCrew({ user }) {
   const [wplan, setWplan] = useState(DEFAULT_WPLAN);
   const [editMode, setEditMode] = useState(false);
   const [newExName, setNewExName] = useState("");
+  const [showNextWorkout, setShowNextWorkout] = useState(false);
 
   const endRef = useRef(null);
 
@@ -614,7 +615,7 @@ export default function IronCrew({ user }) {
         <div className="logo">IRON<span>CREW</span></div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {tab === "find" && findTab === "shop" && <div className="icon-btn" style={{ position: "relative" }}>🛒{cartCount > 0 && <span className="cart-badge">{cartCount}</span>}</div>}
-          <div className="icon-btn" onClick={() => setTab("workout")} style={{cursor:"pointer"}}>🔔<div className="ndot" /></div>
+          <div className="icon-btn" onClick={() => setShowNextWorkout(true)} style={{cursor:"pointer"}}>🔔<div className="ndot" /></div>
           <div className="ava-sm">{getIni(profile?.name)}</div>
         </div>
       </div>
@@ -709,11 +710,23 @@ export default function IronCrew({ user }) {
             </button>
           </div>
           <div className="sub">Тижневий план тренувань</div>
-          <div className="dtabs">{wdays.map(d => (
-            <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>
-              {d}{d === todayKey ? " 📍" : ""}
-            </button>
-          ))}</div>
+          <div className="dtabs">{wdays.map((d, i) => {
+            // Обчислюємо дату кожного дня поточного тижня
+            // Пн=0...Нд=6 в нашому масиві, JS: Нд=0,Пн=1...Сб=6
+            const jsToday = new Date().getDay(); // 0=Нд
+            const dayIndexInWeek = i === 6 ? 0 : i + 1; // Пн(0)->1, ..., Нд(6)->0
+            const diff = dayIndexInWeek - jsToday;
+            const date = new Date();
+            date.setDate(date.getDate() + diff);
+            const dateStr = date.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" });
+            const isToday = d === todayKey;
+            return (
+              <button key={d} className={`dtab${aday === d ? " on" : ""}`} onClick={() => setAday(d)}>
+                <div style={{fontWeight:700}}>{d}{isToday ? " 📍" : ""}</div>
+                <div style={{fontSize:9,opacity:0.7,marginTop:2}}>{dateStr}</div>
+              </button>
+            );
+          })}</div>
 
           {plan.ex.length > 0 || editMode ? (
             <div className="wcard">
@@ -1058,6 +1071,57 @@ export default function IronCrew({ user }) {
         )}
 
       </div>
+
+
+        {/* ── МОДАЛКА НАСТУПНОГО ТРЕНУВАННЯ ── */}
+        {showNextWorkout && (() => {
+          // Знаходимо наступний день з вправами
+          const todayIdx = wdays.indexOf(todayKey);
+          let nextDay = null;
+          let nextPlan = null;
+          for (let i = 1; i <= 7; i++) {
+            const d = wdays[(todayIdx + i) % 7];
+            if (wplan[d].ex.length > 0) { nextDay = d; nextPlan = wplan[d]; break; }
+          }
+          // Дата наступного тренування
+          const todayJs = new Date().getDay();
+          const nextIdx = nextDay ? wdays.indexOf(nextDay) : 0;
+          const nextDayJs = nextIdx === 6 ? 0 : nextIdx + 1;
+          let daysUntil = nextDayJs - todayJs;
+          if (daysUntil <= 0) daysUntil += 7;
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + daysUntil);
+          const nextDateStr = nextDate.toLocaleDateString("uk-UA", { weekday: "long", day: "numeric", month: "long" });
+          return (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => setShowNextWorkout(false)}>
+              <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px"}} onClick={e => e.stopPropagation()}>
+                <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:13,color:"var(--muted)",letterSpacing:2,marginBottom:4}}>НАСТУПНЕ ТРЕНУВАННЯ</div>
+                {nextDay && nextPlan ? (<>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:"var(--accent)",letterSpacing:1,marginBottom:4}}>{nextPlan.t}</div>
+                  <div style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>📅 {nextDateStr}</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+                    {nextPlan.ex.map((ex, i) => (
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:"var(--surface2)",borderRadius:10,padding:"10px 14px"}}>
+                        <div style={{width:24,height:24,borderRadius:6,background:"rgba(232,255,71,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:"var(--accent)",flexShrink:0}}>{i+1}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:600}}>{ex.n}</div>
+                          <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{ex.s}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button style={{width:"100%",background:"var(--accent)",color:"#000",border:"none",borderRadius:14,padding:16,fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:2,cursor:"pointer"}}
+                    onClick={() => { setAday(nextDay); setTab("workout"); setShowNextWorkout(false); }}>
+                    ВІДКРИТИ ПРОГРАМУ
+                  </button>
+                </>) : (
+                  <div style={{textAlign:"center",padding:"20px 0",color:"var(--muted)"}}>Немає запланованих тренувань 😴</div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
       <div className="bottomnav">
         {[{id:"feed",ic:"🏠",l:"Стрічка"},{id:"workout",ic:"📋",l:"Програма"},{id:"progress",ic:"📈",l:"Прогрес"},{id:"find",ic:"🔍",l:"Знайти"},{id:"chat",ic:"💬",l:"Чат",b:true},{id:"profile",ic:"👤",l:"Профіль"}].map(n => (
