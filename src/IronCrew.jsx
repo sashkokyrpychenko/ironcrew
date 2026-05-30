@@ -686,6 +686,11 @@ export default function IronCrew({ user }) {
 
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
+  // Спринт 6 — реальна статистика
+  const [setsData, setSetsData] = useState([]); // всі workout_sets юзера
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState(null); // для графіка
+
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
@@ -846,6 +851,23 @@ export default function IronCrew({ user }) {
     ]).then(([r1, r2]) => setFollowCounts({ followers: r1.count || 0, following: r2.count || 0 }));
 
   }, [user]);
+
+  // Завантаження workout_sets для прогресу
+  const loadSetsData = async () => {
+    if (!user) return;
+    setStatsLoading(true);
+    const { data } = await supabase
+      .from("workout_sets")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    if (data) setSetsData(data);
+    setStatsLoading(false);
+  };
+
+  useEffect(() => {
+    if (tab === "progress") loadSetsData();
+  }, [tab]);
 
   const submitPost = async () => {
 
@@ -1667,53 +1689,177 @@ export default function IronCrew({ user }) {
 
         {/* ── ПРОГРЕС ── */}
 
-        {tab === "progress" && (<>
+        {tab === "progress" && (() => {
+          // ── Обчислення реальної статистики з workout_sets ──
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          // Загальний обсяг (кг) = сума weight * sets * reps
+          const totalVolume = setsData.reduce((acc, s) => {
+            return acc + ((s.weight || 0) * (s.sets || 1) * (s.reps || 1));
+          }, 0);
+          const totalVolumeTons = (totalVolume / 1000).toFixed(1);
 
-            <div className="stitle" style={{ marginBottom: 0 }}>МІЙ <span>ПРОГРЕС</span></div>
+          // Загальний час тренувань з workouts таблиці
+          const totalMinutes = workouts.reduce((acc, w) => acc + (w.duration || 0), 0);
+          const totalHours = (totalMinutes / 60).toFixed(1);
 
-            <div style={{ display: "flex", gap: 4, background: "var(--surface)", borderRadius: 10, padding: 3, border: "1px solid var(--border)" }}>
+          // PR по кожній вправі — максимальна вага
+          const prMap = {};
+          setsData.forEach(s => {
+            if (!s.exercise_name || !s.weight) return;
+            if (!prMap[s.exercise_name] || s.weight > prMap[s.exercise_name].weight) {
+              prMap[s.exercise_name] = { weight: s.weight, date: s.created_at, sets: s.sets, reps: s.reps };
+            }
+          });
+          const prList = Object.entries(prMap)
+            .sort((a, b) => b[1].weight - a[1].weight)
+            .slice(0, 6);
 
-              {["Тиждень","Місяць"].map(p => <button key={p} onClick={() => setPeriod(p)} style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: period === p ? "var(--accent)" : "none", color: period === p ? "#000" : "var(--muted)", fontSize: 12, fontWeight: period === p ? 700 : 500, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>{p}</button>)}
+          // Графік — обсяг по останніх 7 днях
+          const last7 = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return d.toISOString().slice(0, 10);
+          });
+          const volumeByDay = {};
+          setsData.forEach(s => {
+            const day = s.created_at?.slice(0, 10);
+            if (!day) return;
+            const vol = (s.weight || 0) * (s.sets || 1) * (s.reps || 1);
+            volumeByDay[day] = (volumeByDay[day] || 0) + vol;
+          });
+          const chartData = last7.map(d => volumeByDay[d] || 0);
+          const chartMax = Math.max(...chartData, 1);
 
+          // Графік прогресу по вибраній вправі
+          const exNames = [...new Set(setsData.map(s => s.exercise_name).filter(Boolean))];
+          const activeEx = selectedExercise || exNames[0] || null;
+          const exHistory = setsData
+            .filter(s => s.exercise_name === activeEx && s.weight)
+            .slice(-10)
+            .map(s => ({ date: s.created_at?.slice(0,10), weight: s.weight, sets: s.sets, reps: s.reps }));
+          const exMax = Math.max(...exHistory.map(e => e.weight), 1);
+
+          return (<>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div className="stitle" style={{ marginBottom: 0 }}>МІЙ <span>ПРОГРЕС</span></div>
+              {statsLoading && <div style={{ fontSize: 12, color: "var(--muted)" }}>Завантаження...</div>}
             </div>
 
-          </div>
+            {/* Статистика — 4 картки */}
+            <div className="pgrid">
+              <div className="pcard">
+                <div className="pval">{workouts.length}</div>
+                <div className="plbl">Тренувань</div>
+                <div className="pchg">💪</div>
+              </div>
+              <div className="pcard">
+                <div className="pval">{totalVolumeTons}т</div>
+                <div className="plbl">Загальний обсяг</div>
+                <div className="pchg" style={{ color: "#4ade80" }}>↑ реально</div>
+              </div>
+              <div className="pcard">
+                <div className="pval">{totalHours}</div>
+                <div className="plbl">Год у залі</div>
+                <div className="pchg">⏱</div>
+              </div>
+              <div className="pcard">
+                <div className="pval">{prList.length}</div>
+                <div className="plbl">Вправ записано</div>
+                <div className="pchg" style={{ color: "var(--accent2)" }}>🔥</div>
+              </div>
+            </div>
 
-          <div className="pgrid">
+            {/* Графік обсягу за 7 днів */}
+            <div className="bcc">
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Обсяг за 7 днів (кг)</div>
+              {chartData.every(v => v === 0) ? (
+                <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, padding: "20px 0" }}>
+                  Немає даних — почни записувати підходи під час тренування
+                </div>
+              ) : (
+                <div className="bchart">
+                  {chartData.map((v, i) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (6 - i));
+                    const label = date.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" });
+                    const h = Math.round((v / chartMax) * 90) + (v > 0 ? 6 : 0);
+                    return (
+                      <div className="bcol" key={i}>
+                        <div className={`bar${i === 6 ? " hi" : ""}`} style={{ height: h, background: v > 0 ? (i === 6 ? "var(--accent)" : "var(--surface2)") : "transparent", border: v > 0 ? "none" : "1px dashed var(--border)" }} />
+                        <div className="bday" style={{ fontSize: 8 }}>{label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
-            <div className="pcard"><div className="pval">{workouts.length}</div><div className="plbl">Тренувань</div><div className="pchg">💪</div></div>
+            {/* Графік прогресу по вправі */}
+            {exNames.length > 0 && (<>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Прогрес по вправі</div>
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 14, paddingBottom: 2 }}>
+                {exNames.map(n => (
+                  <button key={n} onClick={() => setSelectedExercise(n)}
+                    style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 20, border: "1px solid", borderColor: activeEx === n ? "var(--accent)" : "var(--border)", background: activeEx === n ? "var(--accent)" : "var(--surface)", color: activeEx === n ? "#000" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'DM Sans',sans-serif" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="bcc" style={{ marginBottom: 20 }}>
+                {exHistory.length < 2 ? (
+                  <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, padding: "16px 0" }}>
+                    Потрібно мінімум 2 записи щоб побачити прогрес
+                  </div>
+                ) : (<>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginBottom: 8 }}>
+                    {exHistory.map((e, i) => {
+                      const h = Math.round((e.weight / exMax) * 80) + 10;
+                      const isLast = i === exHistory.length - 1;
+                      const isPR = e.weight === exMax;
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          {isPR && <div style={{ fontSize: 8, color: "var(--accent2)", fontWeight: 700 }}>PR</div>}
+                          <div style={{ width: "100%", borderRadius: "4px 4px 0 0", background: isPR ? "var(--accent2)" : isLast ? "var(--accent)" : "var(--surface2)", height: h }} />
+                          <div style={{ fontSize: 9, color: "var(--muted)" }}>{e.weight}кг</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--muted)" }}>
+                    <span>{exHistory[0]?.date}</span>
+                    <span>PR: {exMax}кг 🔥</span>
+                    <span>{exHistory[exHistory.length-1]?.date}</span>
+                  </div>
+                </>)}
+              </div>
+            </>)}
 
-            <div className="pcard"><div className="pval">42т</div><div className="plbl">Загальний обсяг</div><div className="pchg">↑ +8%</div></div>
-
-            <div className="pcard"><div className="pval">7.2</div><div className="plbl">Год у залі</div><div className="pchg">↑ +0.5</div></div>
-
-            <div className="pcard"><div className="pval">3</div><div className="plbl">Нових рекордів</div><div className="pchg" style={{ color: "var(--accent2)" }}>🔥 PR!</div></div>
-
-          </div>
-
-          <div className="bcc">
-
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Обсяг по днях (кг)</div>
-
-            <div className="bchart">{wdays.map((d,i) => <div className="bcol" key={d}><div className={`bar${i===3?" hi":""}`} style={{ height: bars[i] }} /><div className="bday">{d}</div></div>)}</div>
-
-          </div>
-
-          <div className="stitle" style={{ marginBottom: 12 }}>ОСОБИСТІ <span>РЕКОРДИ</span></div>
-
-          <div className="prlist">
-
-            {[{ic:"🏋️",n:"Присідання",d:"8 трав",v:"130",u:"кг"},{ic:"💪",n:"Жим лежачи",d:"5 трав",v:"100",u:"кг"},{ic:"⚡",n:"Станова тяга",d:"1 трав",v:"160",u:"кг"},{ic:"🤸",n:"Підтягування",d:"3 трав",v:"18",u:"разів"}].map((pr,i) => (
-
-              <div className="prcard" key={i}><div className="pricon">{pr.ic}</div><div className="prinfo"><div className="prn">{pr.n}</div><div className="prd">{pr.d}</div></div><div><div className="prv">{pr.v}</div><div className="pru">{pr.u}</div></div></div>
-
-            ))}
-
-          </div>
-
-        </>)}
+            {/* Особисті рекорди */}
+            <div className="stitle" style={{ marginBottom: 12 }}>ОСОБИСТІ <span>РЕКОРДИ</span></div>
+            {prList.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>🏋️</div>
+                <div style={{ fontSize: 13 }}>Рекордів ще немає.<br/>Запиши перше тренування!</div>
+              </div>
+            ) : (
+              <div className="prlist">
+                {prList.map(([name, pr], i) => (
+                  <div className="prcard" key={i}>
+                    <div className="pricon">🏋️</div>
+                    <div className="prinfo">
+                      <div className="prn">{name}</div>
+                      <div className="prd">{pr.sets}×{pr.reps} · {new Date(pr.date).toLocaleDateString("uk-UA", { day: "numeric", month: "short" })}</div>
+                    </div>
+                    <div>
+                      <div className="prv">{pr.weight}</div>
+                      <div className="pru">кг</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>);
+        })()}
 
         {/* ── ЗНАЙТИ ── */}
 
