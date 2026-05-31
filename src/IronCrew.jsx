@@ -2521,13 +2521,6 @@ export default function IronCrew({ user }) {
               });
             })()}
 
-            <div style={{display:"none"}}>
-            <div
-
-              </div>
-
-            ))}
-
           </>)}
 
           {findTab === "trainers" && (<>
