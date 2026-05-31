@@ -1297,6 +1297,8 @@ export default function IronCrew({ user }) {
 
     const { data, error } = await supabase.from("workouts").insert([workout]).select();
 
+    if (error) { console.error("saveWorkout error:", error); setSavingWorkout(false); return; }
+
     if (!error && data) {
 
       setWorkouts(prev => [data[0], ...prev]);
@@ -2467,45 +2469,60 @@ export default function IronCrew({ user }) {
 
           {findTab === "people" && (<>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-
-              {[{id:"near",l:"📍 Поруч"},{id:"similar",l:"🎯 Схожий прогрес"}].map(s => (
-
-                <button key={s.id} className={`ftab${recSub===s.id?" on":""}`} style={{ flex: 1 }} onClick={() => setRecSub(s.id)}>{s.l}</button>
-
-              ))}
-
+            <div className="sbar" style={{marginBottom:16}}>
+              <span style={{fontSize:16,color:"var(--muted)"}}>🔍</span>
+              <input
+                placeholder="Ім'я, зал, місто..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && <span style={{cursor:"pointer",color:"var(--muted)",fontSize:16}} onClick={() => setSearchQuery("")}>✕</span>}
             </div>
 
-            {peopleRecs[recSub].map((rec,i) => (
+            {discoverLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:30,fontSize:13}}>Завантаження...</div>}
 
-              <div className="rcard" key={rec.id} style={{ animationDelay: `${i*0.07}s` }}>
-
-                <div className="rtop"><div className="rava" style={{ background: rec.col, color: "#fff" }}>{rec.ini}</div><div><div className="rn">{rec.name}</div><div className="rs">{rec.sub}</div><div className={`mpill ${rec.match}`}>{rec.mlbl}</div></div></div>
-
-                <div className="gym-badge">🏢 {rec.gym}</div>
-
-                <div className="rstats">
-
-                  <div className="rst"><div className="rstv">{rec.w}</div><div className="rstl">ТРЕНУВАНЬ</div></div>
-
-                  <div className="rst"><div className="rstv">{rec.sq}</div><div className="rstl">ПРИСІД</div></div>
-
-                  <div className="rst"><div className="rstv">{rec.bn}</div><div className="rstl">ЖИМ</div></div>
-
+            {!discoverLoading && (() => {
+              const filtered = discoverUsers.filter(u => {
+                if (!searchQuery) return true;
+                const q = searchQuery.toLowerCase();
+                return (u.name||"").toLowerCase().includes(q) ||
+                       (u.gym||"").toLowerCase().includes(q) ||
+                       (u.city||"").toLowerCase().includes(q);
+              });
+              if (filtered.length === 0) return (
+                <div style={{textAlign:"center",padding:"40px 0",color:"var(--muted)"}}>
+                  <div style={{fontSize:40,marginBottom:10}}>🔍</div>
+                  <div style={{fontSize:13}}>{searchQuery ? "Нікого не знайдено" : "Поки що немає інших атлетів"}</div>
                 </div>
+              );
+              return filtered.map((p, i) => {
+                const col = getColor(p.user_id);
+                const ini = getIni(p.name);
+                const isFollowing = followed[p.user_id];
+                return (
+                  <div key={p.user_id} className="rcard" style={{animationDelay:`${i*0.05}s`}}>
+                    <div className="rtop">
+                      <div className="rava" style={{background:col,color:"#fff"}}>{ini}</div>
+                      <div style={{flex:1}}>
+                        <div className="rn">{p.name || "Атлет"}</div>
+                        <div className="rs">{p.gym || ""}{p.city ? (p.gym ? " · " : "") + p.city : ""}</div>
+                      </div>
+                      {onlineUsers.has(p.user_id) && <div style={{width:8,height:8,borderRadius:"50%",background:"#4ade80",flexShrink:0}}/>}
+                    </div>
+                    {(p.gym || p.city) && <div className="gym-badge">🏢 {p.gym || p.city}</div>}
+                    <div className="ract">
+                      <button className="rbtn" onClick={() => openChatWith({id:p.user_id,userId:p.user_id,name:p.name||"Атлет",ini,col})}>💬 Написати</button>
+                      <button className={`rbtn${isFollowing ? "" : " pri"}`} onClick={() => toggleFollow(p.user_id)}>
+                        {isFollowing ? "✓ Підписаний" : "+ Підписатись"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
 
-                <div className="ract">
-
-                  <button className="rbtn" onClick={() => openChatWith(rec)}>💬 Написати</button>
-
-                  <button className={`rbtn${followed[rec.id] ? "" : " pri"}`} onClick={() => toggleFollow(rec.id)}>
-
-                    {followed[rec.id] ? "✓ Підписаний" : "+ Підписатись"}
-
-                  </button>
-
-                </div>
+            <div style={{display:"none"}}>
+            <div
 
               </div>
 
