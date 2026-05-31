@@ -777,8 +777,8 @@ export default function IronCrew({ user }) {
 
     setFeedLoading(true);
 
-    const { data: posts, error } = await supabase.from("posts").select("*")
-
+    const { data: posts, error } = await supabase.from("posts")
+      .select("*, profiles(name, gym, city)")
       .order("created_at", { ascending: false }).limit(50);
 
     if (error || !posts) { setFeedLoading(false); return; }
