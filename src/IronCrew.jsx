@@ -686,6 +686,11 @@ export default function IronCrew({ user }) {
 
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
+  // Спринт 8 — Знайти
+  const [discoverUsers, setDiscoverUsers] = useState([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Спринт 7 — профіль
   const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
   const [followList, setFollowList] = useState([]);
@@ -859,6 +864,23 @@ export default function IronCrew({ user }) {
   }, [user]);
 
   // Завантаження workout_sets для прогресу
+  // Завантажити реальних юзерів для Знайти
+  const loadDiscoverUsers = async () => {
+    if (!user) return;
+    setDiscoverLoading(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, name, gym, city")
+      .neq("user_id", user.id)
+      .limit(50);
+    if (data) setDiscoverUsers(data);
+    setDiscoverLoading(false);
+  };
+
+  useEffect(() => {
+    if (tab === "find") loadDiscoverUsers();
+  }, [tab]);
+
   // Відкрити модалку підписників або підписок
   const openFollowModal = async (type) => {
     setShowFollowModal(type);
@@ -1898,60 +1920,69 @@ export default function IronCrew({ user }) {
 
         {tab === "find" && (<>
 
-          <div style={{position:"relative",minHeight:"60vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"40px 20px"}}>
+          <div className="stitle">ЗНАЙТИ <span>АТЛЕТІВ</span></div>
 
-            {/* Розмитий фон зі старим контентом */}
-
-            <div style={{position:"absolute",inset:0,opacity:0.08,filter:"blur(4px)",pointerEvents:"none",overflow:"hidden"}}>
-
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--text)",marginBottom:14}}>ЗНАЙТИ</div>
-
-              <div style={{display:"flex",gap:6,marginBottom:18,justifyContent:"center"}}>
-
-                {["👥 Люди","🎯 Тренери","🛍 Магазин"].map(l => <div key={l} style={{padding:"9px 16px",borderRadius:12,border:"1px solid var(--border)",background:"var(--surface)",color:"var(--muted)",fontSize:12}}>{l}</div>)}
-
-              </div>
-
-              {[1,2,3].map(i => <div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,padding:16,marginBottom:12,height:120}}/>)}
-
-            </div>
-
-            {/* Основний контент */}
-
-            <div style={{position:"relative",zIndex:1}}>
-
-              <div style={{fontSize:56,marginBottom:16}}>🚧</div>
-
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
-
-              <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260}}>Тут з'являться реальні атлети з твого міста, тренери та магазин спортпіту</div>
-
-              <div style={{marginTop:24,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
-
-                <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite"}}/>
-
-                <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
-
-              </div>
-
-            </div>
-
+          {/* Пошук */}
+          <div className="sbar" style={{marginBottom:16}}>
+            <span style={{fontSize:16,color:"var(--muted)"}}>🔍</span>
+            <input
+              placeholder="Ім'я, зал, місто..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && <span style={{cursor:"pointer",color:"var(--muted)",fontSize:16}} onClick={() => setSearchQuery("")}>✕</span>}
           </div>
 
-          {/* Додаємо анімацію пульсу */}
+          {discoverLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:30,fontSize:13}}>Завантаження...</div>}
 
-          <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}"}</style>
+          {!discoverLoading && (() => {
+            const filtered = discoverUsers.filter(u => {
+              if (!searchQuery) return true;
+              const q = searchQuery.toLowerCase();
+              return (u.name||"").toLowerCase().includes(q) ||
+                     (u.gym||"").toLowerCase().includes(q) ||
+                     (u.city||"").toLowerCase().includes(q);
+            });
+
+            if (filtered.length === 0) return (
+              <div style={{textAlign:"center",padding:"40px 0",color:"var(--muted)"}}>
+                <div style={{fontSize:40,marginBottom:10}}>🔍</div>
+                <div style={{fontSize:13}}>{searchQuery ? "Нікого не знайдено" : "Поки що немає інших атлетів"}</div>
+              </div>
+            );
+
+            return filtered.map((p, i) => {
+              const col = getColor(p.user_id);
+              const ini = getIni(p.name);
+              const isFollowing = followed[p.user_id];
+              return (
+                <div key={p.user_id} className="rcard" style={{animationDelay:`${i*0.05}s`}}>
+                  <div className="rtop">
+                    <div className="rava" style={{background:col,color:"#fff"}}>{ini}</div>
+                    <div style={{flex:1}}>
+                      <div className="rn">{p.name || "Атлет"}</div>
+                      <div className="rs">{p.gym || ""}{p.city ? (p.gym ? " · " : "") + p.city : ""}</div>
+                    </div>
+                  </div>
+                  {(p.gym || p.city) && (
+                    <div className="gym-badge">🏢 {p.gym || p.city}</div>
+                  )}
+                  <div className="ract">
+                    <button className="rbtn" onClick={() => openChatWith({id:p.user_id,userId:p.user_id,name:p.name||"Атлет",ini,col})}>💬 Написати</button>
+                    <button className={`rbtn${isFollowing ? "" : " pri"}`} onClick={() => toggleFollow(p.user_id)}>
+                      {isFollowing ? "✓ Підписаний" : "+ Підписатись"}
+                    </button>
+                  </div>
+                </div>
+              );
+            });
+          })()}
 
           <div style={{display:"none"}}>
-
           <div className="ftabs">
-
-            {[{id:"people",l:"👥 Люди"},{id:"trainers",l:"🎯 Тренери"},{id:"shop",l:"🛍 Магазин"}].map(ft => (
-
+            {[{id:"people",l:"👥 Люди"}].map(ft => (
               <button key={ft.id} className={`ftab${findTab===ft.id?" on":""}`} onClick={() => setFindTab(ft.id)}>{ft.l}</button>
-
             ))}
-
           </div>
 
           {findTab === "people" && (<>
