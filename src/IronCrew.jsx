@@ -686,6 +686,12 @@ export default function IronCrew({ user }) {
 
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
+  // Спринт 7 — профіль
+  const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
+  const [followList, setFollowList] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+  const [swipeState, setSwipeState] = useState({}); // {workoutId: offsetX}
+
   // Спринт 6 — реальна статистика
   const [setsData, setSetsData] = useState([]); // всі workout_sets юзера
   const [statsLoading, setStatsLoading] = useState(false);
@@ -853,6 +859,33 @@ export default function IronCrew({ user }) {
   }, [user]);
 
   // Завантаження workout_sets для прогресу
+  // Відкрити модалку підписників або підписок
+  const openFollowModal = async (type) => {
+    setShowFollowModal(type);
+    setFollowListLoading(true);
+    setFollowList([]);
+    let ids = [];
+    if (type === 'followers') {
+      const { data } = await supabase.from("follows").select("follower_id").eq("following_id", user.id);
+      ids = (data || []).map(f => f.follower_id);
+    } else {
+      const { data } = await supabase.from("follows").select("following_id").eq("follower_id", user.id);
+      ids = (data || []).map(f => f.following_id);
+    }
+    if (ids.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, name, gym, city").in("user_id", ids);
+      setFollowList(profiles || []);
+    }
+    setFollowListLoading(false);
+  };
+
+  // Видалити тренування
+  const deleteWorkout = async (workoutId) => {
+    await supabase.from("workouts").delete().eq("id", workoutId).eq("user_id", user.id);
+    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+    setSwipeState({});
+  };
+
   const loadSetsData = async () => {
     if (!user) return;
     setStatsLoading(true);
@@ -2109,7 +2142,18 @@ export default function IronCrew({ user }) {
 
         {/* ── ПРОФІЛЬ ── */}
 
-        {tab === "profile" && (<>
+        {tab === "profile" && (() => {
+          // Обчислення streak
+          const workoutDays = new Set(workouts.map(w => w.created_at?.slice(0, 10)).filter(Boolean));
+          let streak = 0;
+          const today = new Date();
+          for (let i = 0; i < 365; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            if (workoutDays.has(key)) { streak++; } else if (i > 0) { break; }
+          }
+          return (<>
 
           <div className="pava">{getIni(profile?.name)}</div>
 
@@ -2117,13 +2161,31 @@ export default function IronCrew({ user }) {
 
           <div className="pbio">{profile?.gym || ""}{profile?.city ? ` · ${profile.city}` : ""}</div>
 
+          {/* Streak badge */}
+          {streak > 0 && (
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,107,53,0.1)",border:"1px solid rgba(255,107,53,0.3)",borderRadius:20,padding:"6px 14px",marginBottom:12}}>
+              <span style={{fontSize:18}}>🔥</span>
+              <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:"var(--accent2)",letterSpacing:1}}>{streak}</span>
+              <span style={{fontSize:12,color:"var(--muted)"}}>днів поспіль</span>
+            </div>
+          )}
+
           <div className="pstats">
 
-            <div className="pst"><div className="pstv">{workouts.length}</div><div className="pstl">Тренувань</div></div>
+            <div className="pst" style={{cursor:"pointer"}} onClick={() => openFollowModal('followers')}>
+              <div className="pstv">{followCounts.followers}</div>
+              <div className="pstl">Підписники</div>
+            </div>
 
-            <div className="pst"><div className="pstv">{followCounts.followers}</div><div className="pstl">Підписники</div></div>
+            <div className="pst">
+              <div className="pstv">{workouts.length}</div>
+              <div className="pstl">Тренувань</div>
+            </div>
 
-            <div className="pst"><div className="pstv">{followCounts.following}</div><div className="pstl">Підписки</div></div>
+            <div className="pst" style={{cursor:"pointer"}} onClick={() => openFollowModal('following')}>
+              <div className="pstv">{followCounts.following}</div>
+              <div className="pstl">Підписки</div>
+            </div>
 
           </div>
 
@@ -2143,37 +2205,65 @@ export default function IronCrew({ user }) {
 
           ) : (
 
-            workouts.map((w,i) => (
-
-              <div className="wlog-card" key={w.id} style={{ animationDelay: `${i*0.07}s` }}>
-
-                <div className="wlog-title">{w.title}</div>
-
-                <div className="wlog-meta">
-
-                  {w.duration && <div className="wlog-chip">⏱ <span>{w.duration} хв</span></div>}
-
-                  {w.volume && <div className="wlog-chip">🏋️ <span>{w.volume} т</span></div>}
-
-                  {Array.isArray(w.exercises) && w.exercises.length > 0 && <div className="wlog-chip">📋 <span>{w.exercises.length} вправ</span></div>}
-
+            workouts.map((w,i) => {
+              const offset = swipeState[w.id] || 0;
+              const swiped = offset < -60;
+              return (
+                <div key={w.id} style={{position:"relative",marginBottom:10,overflow:"hidden",borderRadius:14}}>
+                  {/* Фон кнопки видалення */}
+                  <div style={{position:"absolute",inset:0,background:"rgba(255,59,48,0.15)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"flex-end",paddingRight:20}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <span style={{fontSize:20}}>🗑</span>
+                      <span style={{fontSize:9,color:"#ff3b30",fontWeight:700}}>ВИДАЛИТИ</span>
+                    </div>
+                  </div>
+                  {/* Картка тренування */}
+                  <div
+                    className="wlog-card"
+                    style={{
+                      animationDelay:`${i*0.07}s`,
+                      marginBottom:0,
+                      transform:`translateX(${Math.max(offset, -80)}px)`,
+                      transition: offset === 0 ? "transform 0.3s ease" : "none",
+                      position:"relative",zIndex:1,
+                      background: swiped ? "var(--surface)" : "var(--card)",
+                    }}
+                    onTouchStart={e => {
+                      const startX = e.touches[0].clientX;
+                      const onMove = ev => {
+                        const dx = ev.touches[0].clientX - startX;
+                        if (dx < 0) setSwipeState(s => ({...s, [w.id]: dx}));
+                      };
+                      const onEnd = () => {
+                        const cur = swipeState[w.id] || 0;
+                        if (cur < -60) { deleteWorkout(w.id); }
+                        else { setSwipeState(s => ({...s, [w.id]: 0})); }
+                        document.removeEventListener("touchmove", onMove);
+                        document.removeEventListener("touchend", onEnd);
+                      };
+                      document.addEventListener("touchmove", onMove);
+                      document.addEventListener("touchend", onEnd);
+                    }}
+                  >
+                    <div className="wlog-title">{w.title}</div>
+                    <div className="wlog-meta">
+                      {w.duration && <div className="wlog-chip">⏱ <span>{w.duration} хв</span></div>}
+                      {w.volume && <div className="wlog-chip">🏋️ <span>{w.volume} т</span></div>}
+                      {Array.isArray(w.exercises) && w.exercises.length > 0 && <div className="wlog-chip">📋 <span>{w.exercises.length} вправ</span></div>}
+                    </div>
+                    {Array.isArray(w.exercises) && w.exercises.length > 0 && (
+                      <div className="wlog-exlist">{w.exercises.map((ex,j) => <div className="wlog-exrow" key={j}><span>{ex}</span></div>)}</div>
+                    )}
+                    <div className="wlog-date">📅 {formatDate(w.created_at)}</div>
+                  </div>
                 </div>
-
-                {Array.isArray(w.exercises) && w.exercises.length > 0 && (
-
-                  <div className="wlog-exlist">{w.exercises.map((ex,j) => <div className="wlog-exrow" key={j}><span>{ex}</span></div>)}</div>
-
-                )}
-
-                <div className="wlog-date">📅 {formatDate(w.created_at)}</div>
-
-              </div>
-
-            ))
+              );
+            })
 
           )}
 
-        </>)}
+          </>);
+        })()}
 
         {/* ── МОДАЛКА РЕДАГУВАННЯ ПРОФІЛЮ ── */}
 
@@ -2384,6 +2474,40 @@ export default function IronCrew({ user }) {
           );
 
         })()}
+
+
+        {/* ── МОДАЛКА ПІДПИСНИКИ / ПІДПИСКИ ── */}
+        {showFollowModal && (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => setShowFollowModal(null)}>
+            <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"70vh",overflowY:"auto"}} onClick={e => e.stopPropagation()}>
+              <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:1.5,marginBottom:20}}>
+                {showFollowModal === 'followers' ? 'ПІДПИСНИКИ' : 'ПІДПИСКИ'}
+              </div>
+              {followListLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:20}}>Завантаження...</div>}
+              {!followListLoading && followList.length === 0 && (
+                <div style={{textAlign:"center",color:"var(--muted)",padding:20,fontSize:13}}>
+                  {showFollowModal === 'followers' ? 'Ще немає підписників' : 'Ти ще нікого не підписаний'}
+                </div>
+              )}
+              {followList.map(p => (
+                <div key={p.user_id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+                  <div style={{width:44,height:44,borderRadius:"50%",background:getColor(p.user_id),display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,fontWeight:700,color:"#fff",flexShrink:0}}>{getIni(p.name)}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:600}}>{p.name || "Користувач"}</div>
+                    <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{p.gym || p.city || ""}</div>
+                  </div>
+                  <button
+                    style={{padding:"7px 14px",borderRadius:10,border:"1px solid",borderColor:followed[p.user_id]?"var(--accent)":"var(--border)",background:followed[p.user_id]?"rgba(232,255,71,0.1)":"var(--surface2)",color:followed[p.user_id]?"var(--accent)":"var(--muted)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}
+                    onClick={() => toggleFollow(p.user_id)}
+                  >
+                    {followed[p.user_id] ? "✓ Підписаний" : "+ Підписатись"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       <div className="bottomnav">
 
