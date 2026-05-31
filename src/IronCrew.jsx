@@ -2141,6 +2141,18 @@ export default function IronCrew({ user }) {
           </>)}
 
           {findTab === "trainers" && (<>
+            <div style={{textAlign:"center",padding:"50px 20px"}}>
+              <div style={{fontSize:52,marginBottom:16}}>🚧</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
+              <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260,margin:"0 auto"}}>Цей розділ з'явиться зовсім скоро</div>
+              <div style={{marginTop:20,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite",cursor:"pointer"}} onClick={() => alert("не тикай 😤")}/>
+                <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
+              </div>
+            </div>
+          </>)}
+
+          {findTab === "trainers_hidden" && (<>
 
             <div className="filter-bar">
 
@@ -2197,6 +2209,18 @@ export default function IronCrew({ user }) {
           </>)}
 
           {findTab === "shop" && (<>
+            <div style={{textAlign:"center",padding:"50px 20px"}}>
+              <div style={{fontSize:52,marginBottom:16}}>🚧</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
+              <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260,margin:"0 auto"}}>Цей розділ з'явиться зовсім скоро</div>
+              <div style={{marginTop:20,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite",cursor:"pointer"}} onClick={() => alert("не тикай 😤")}/>
+                <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
+              </div>
+            </div>
+          </>)}
+
+          {findTab === "shop_hidden" && (<>
 
             <div className="shop-cats">{shopCats.map(c => <button key={c} className={`scat${shopCat===c?" on":""}`} onClick={() => setShopCat(c)}>{c}</button>)}</div>
 
