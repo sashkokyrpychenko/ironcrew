@@ -1021,12 +1021,27 @@ export default function IronCrew({ user }) {
   // Видалити тренування
 
   const deleteWorkout = async (workoutId) => {
+    // Знаходимо тренування щоб отримати дату і вправи
+    const workout = workouts.find(w => w.id === workoutId);
 
+    // Видаляємо тренування
     await supabase.from("workouts").delete().eq("id", workoutId).eq("user_id", user.id);
 
-    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+    // Видаляємо пов'язані workout_sets за датою і вправами
+    if (workout?.created_at) {
+      const day = workout.created_at.slice(0, 10);
+      const exNames = Array.isArray(workout.exercises) ? workout.exercises : [];
+      if (exNames.length > 0) {
+        await supabase.from("workout_sets")
+          .delete()
+          .eq("user_id", user.id)
+          .gte("created_at", day + "T00:00:00+03:00")
+          .lte("created_at", day + "T23:59:59+03:00")
+          .in("exercise_name", exNames);
+      }
+    }
 
-    setSwipeState({});
+    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
 
   };
 
