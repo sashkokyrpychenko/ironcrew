@@ -996,9 +996,12 @@ export default function IronCrew({ user }) {
     }).eq("id", editWorkout.id).eq("user_id", user.id);
     // Зберегти змінені workout_sets
     for (const s of editWorkoutSets) {
-      await supabase.from("workout_sets").update({
-        sets: s.sets, reps: s.reps, weight: s.weight
-      }).eq("id", s.id);
+      const { error } = await supabase.from("workout_sets").update({
+        sets: s.sets ? parseInt(s.sets) : null,
+        reps: s.reps ? parseInt(s.reps) : null,
+        weight: s.weight ? parseFloat(s.weight) : null,
+      }).eq("id", s.id).eq("user_id", user.id);
+      if (error) console.error("workout_sets update error:", error);
     }
     setWorkouts(prev => prev.map(w => w.id === editWorkout.id
       ? { ...w, title: editWorkoutTitle.trim(), duration: editWorkoutDuration ? parseInt(editWorkoutDuration) : w.duration }
