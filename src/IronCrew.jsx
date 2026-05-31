@@ -701,7 +701,10 @@ export default function IronCrew({ user }) {
   const [followList, setFollowList] = useState([]);
   const [followListLoading, setFollowListLoading] = useState(false);
   const [workoutMenu, setWorkoutMenu] = useState(null); // id тренування з відкритим меню
-  const [viewWorkout, setViewWorkout] = useState(null); // тренування для перегляду
+  const [viewWorkout, setViewWorkout] = useState(null);
+  const [viewWorkoutSets, setViewWorkoutSets] = useState([]); // сети для перегляду
+  const [viewSetsLoading, setViewSetsLoading] = useState(false);
+  const [editWorkoutSets, setEditWorkoutSets] = useState([]); // сети для редагування
   const [editWorkout, setEditWorkout] = useState(null); // тренування для редагування
   const [editWorkoutTitle, setEditWorkoutTitle] = useState("");
   const [editWorkoutDuration, setEditWorkoutDuration] = useState("");
@@ -942,17 +945,65 @@ export default function IronCrew({ user }) {
     setSwipeState({});
   };
 
+  // Відкрити перегляд тренування з підтягуванням workout_sets
+  const openViewWorkout = async (w) => {
+    setViewWorkout(w);
+    setWorkoutMenu(null);
+    setViewSetsLoading(true);
+    setViewWorkoutSets([]);
+    // Беремо сети за дату тренування (той самий день)
+    const day = w.created_at?.slice(0, 10);
+    if (day) {
+      const { data } = await supabase
+        .from("workout_sets")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("created_at", day + "T00:00:00")
+        .lte("created_at", day + "T23:59:59")
+        .order("created_at", { ascending: true });
+      setViewWorkoutSets(data || []);
+    }
+    setViewSetsLoading(false);
+  };
+
+  // Відкрити редагування тренування з підтягуванням workout_sets
+  const openEditWorkout = async (w) => {
+    setEditWorkout(w);
+    setEditWorkoutTitle(w.title);
+    setEditWorkoutDuration(w.duration || "");
+    setWorkoutMenu(null);
+    const day = w.created_at?.slice(0, 10);
+    if (day) {
+      const { data } = await supabase
+        .from("workout_sets")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("created_at", day + "T00:00:00")
+        .lte("created_at", day + "T23:59:59")
+        .order("created_at", { ascending: true });
+      setEditWorkoutSets(data || []);
+    }
+  };
+
   const saveEditWorkout = async () => {
     if (!editWorkout || !editWorkoutTitle.trim()) return;
+    // Зберегти тренування
     await supabase.from("workouts").update({
       title: editWorkoutTitle.trim(),
       duration: editWorkoutDuration ? parseInt(editWorkoutDuration) : editWorkout.duration,
     }).eq("id", editWorkout.id).eq("user_id", user.id);
+    // Зберегти змінені workout_sets
+    for (const s of editWorkoutSets) {
+      await supabase.from("workout_sets").update({
+        sets: s.sets, reps: s.reps, weight: s.weight
+      }).eq("id", s.id);
+    }
     setWorkouts(prev => prev.map(w => w.id === editWorkout.id
       ? { ...w, title: editWorkoutTitle.trim(), duration: editWorkoutDuration ? parseInt(editWorkoutDuration) : w.duration }
       : w
     ));
     setEditWorkout(null);
+    setEditWorkoutSets([]);
   };
 
   const loadSetsData = async () => {
@@ -2297,11 +2348,11 @@ export default function IronCrew({ user }) {
                   {/* Dropdown меню */}
                   {workoutMenu === w.id && (
                     <div style={{position:"absolute",right:0,top:24,background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden",zIndex:10,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
-                      <button onClick={() => { setViewWorkout(w); setWorkoutMenu(null); }}
+                      <button onClick={() => openViewWorkout(w)}
                         style={{width:"100%",padding:"12px 16px",background:"none",border:"none",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",gap:10}}>
                         👁 Переглянути
                       </button>
-                      <button onClick={() => { setEditWorkout(w); setEditWorkoutTitle(w.title); setEditWorkoutDuration(w.duration||""); setWorkoutMenu(null); }}
+                      <button onClick={() => openEditWorkout(w)}
                         style={{width:"100%",padding:"12px 16px",background:"none",border:"none",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",gap:10,borderTop:"1px solid var(--border)"}}>
                         ✏️ Редагувати
                       </button>
@@ -2577,8 +2628,8 @@ export default function IronCrew({ user }) {
 
         {/* ── ПЕРЕГЛЯД ТРЕНУВАННЯ ── */}
         {viewWorkout && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => setViewWorkout(null)}>
-            <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => { setViewWorkout(null); setViewWorkoutSets([]); }}>
+            <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:1,marginBottom:6}}>{viewWorkout.title}</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
@@ -2586,10 +2637,34 @@ export default function IronCrew({ user }) {
                 {viewWorkout.volume && <div className="wlog-chip">🏋️ <span>{viewWorkout.volume} т</span></div>}
                 <div className="wlog-chip">📅 <span>{formatDate(viewWorkout.created_at)}</span></div>
               </div>
-              {Array.isArray(viewWorkout.exercises) && viewWorkout.exercises.length > 0 && (<>
-                <div style={{fontSize:12,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Вправи</div>
+
+              {/* Workout sets з деталями */}
+              {viewSetsLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:16,fontSize:13}}>Завантаження...</div>}
+
+              {!viewSetsLoading && viewWorkoutSets.length > 0 && (<>
+                <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Підходи</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+                  {viewWorkoutSets.map((s, i) => (
+                    <div key={s.id} style={{background:"var(--surface2)",borderRadius:12,padding:"12px 14px"}}>
+                      <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:"var(--text)"}}>{s.exercise_name}</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                        {[["Підходи", s.sets], ["Повторення", s.reps], ["Вага (кг)", s.weight]].map(([lbl, val]) => (
+                          <div key={lbl} style={{background:"var(--card)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+                            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--accent)",lineHeight:1}}>{val ?? "—"}</div>
+                            <div style={{fontSize:9,color:"var(--muted)",marginTop:3}}>{lbl}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>)}
+
+              {/* Якщо нема workout_sets але є exercises — показуємо просто список */}
+              {!viewSetsLoading && viewWorkoutSets.length === 0 && Array.isArray(viewWorkout.exercises) && viewWorkout.exercises.length > 0 && (<>
+                <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Вправи</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {viewWorkout.exercises.map((ex,i) => (
+                  {viewWorkout.exercises.map((ex, i) => (
                     <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:"var(--surface2)",borderRadius:10,padding:"10px 14px"}}>
                       <div style={{width:24,height:24,borderRadius:6,background:"rgba(232,255,71,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:"var(--accent)",flexShrink:0}}>{i+1}</div>
                       <div style={{fontSize:13,fontWeight:500}}>{ex}</div>
@@ -2597,22 +2672,57 @@ export default function IronCrew({ user }) {
                   ))}
                 </div>
               </>)}
+
+              {!viewSetsLoading && viewWorkoutSets.length === 0 && (!viewWorkout.exercises || viewWorkout.exercises.length === 0) && (
+                <div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"20px 0"}}>Детальних даних немає</div>
+              )}
             </div>
           </div>
         )}
 
         {/* ── РЕДАГУВАННЯ ТРЕНУВАННЯ ── */}
         {editWorkout && (
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => setEditWorkout(null)}>
-            <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px"}} onClick={e=>e.stopPropagation()}>
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => { setEditWorkout(null); setEditWorkoutSets([]); }}>
+            <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
               <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:1.5,marginBottom:20}}>РЕДАГУВАТИ</div>
+
               <div className="field-label">Назва</div>
               <input className="field-input" value={editWorkoutTitle} onChange={e=>setEditWorkoutTitle(e.target.value)} placeholder="Назва тренування"/>
+
               <div className="field-label">Тривалість (хв)</div>
               <input className="field-input" type="number" value={editWorkoutDuration} onChange={e=>setEditWorkoutDuration(e.target.value)} placeholder="60"/>
+
+              {editWorkoutSets.length > 0 && (<>
+                <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"4px 0 12px"}}>Підходи</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  {editWorkoutSets.map((s, i) => (
+                    <div key={s.id} style={{background:"var(--surface2)",borderRadius:12,padding:"12px 14px"}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--muted)",marginBottom:8}}>{s.exercise_name}</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                        {[
+                          ["Підходи", s.sets, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, sets: parseInt(v)||0} : x))],
+                          ["Повторення", s.reps, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, reps: parseInt(v)||0} : x))],
+                          ["Вага (кг)", s.weight, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, weight: parseFloat(v)||0} : x))],
+                        ].map(([lbl, val, onChange]) => (
+                          <div key={lbl}>
+                            <div style={{fontSize:9,color:"var(--muted)",textAlign:"center",marginBottom:4}}>{lbl}</div>
+                            <input
+                              type="number"
+                              value={val ?? ""}
+                              onChange={e => onChange(e.target.value)}
+                              style={{width:"100%",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:"8px 4px",color:"var(--text)",fontSize:14,textAlign:"center",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>)}
+
               <div style={{display:"flex",gap:10,marginTop:4}}>
-                <button onClick={() => setEditWorkout(null)} style={{flex:1,padding:14,borderRadius:12,border:"1px solid var(--border)",background:"var(--surface2)",color:"var(--muted)",fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:"pointer"}}>Скасувати</button>
+                <button onClick={() => { setEditWorkout(null); setEditWorkoutSets([]); }} style={{flex:1,padding:14,borderRadius:12,border:"1px solid var(--border)",background:"var(--surface2)",color:"var(--muted)",fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:"pointer"}}>Скасувати</button>
                 <button onClick={saveEditWorkout} style={{flex:1,padding:14,borderRadius:12,border:"none",background:"var(--accent)",color:"#000",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:1,cursor:"pointer"}}>ЗБЕРЕГТИ</button>
               </div>
             </div>
