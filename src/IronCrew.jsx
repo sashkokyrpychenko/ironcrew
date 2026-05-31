@@ -951,35 +951,37 @@ export default function IronCrew({ user }) {
     setWorkoutMenu(null);
     setViewSetsLoading(true);
     setViewWorkoutSets([]);
-    // Беремо сети за дату тренування (той самий день)
     const day = w.created_at?.slice(0, 10);
-    if (day) {
+    const exNames = Array.isArray(w.exercises) ? w.exercises : [];
+    if (day && exNames.length > 0) {
       const { data } = await supabase
         .from("workout_sets")
         .select("*")
         .eq("user_id", user.id)
         .gte("created_at", day + "T00:00:00")
         .lte("created_at", day + "T23:59:59")
+        .in("exercise_name", exNames)
         .order("created_at", { ascending: true });
       setViewWorkoutSets(data || []);
     }
     setViewSetsLoading(false);
   };
 
-  // Відкрити редагування тренування з підтягуванням workout_sets
   const openEditWorkout = async (w) => {
     setEditWorkout(w);
     setEditWorkoutTitle(w.title);
     setEditWorkoutDuration(w.duration || "");
     setWorkoutMenu(null);
     const day = w.created_at?.slice(0, 10);
-    if (day) {
+    const exNames = Array.isArray(w.exercises) ? w.exercises : [];
+    if (day && exNames.length > 0) {
       const { data } = await supabase
         .from("workout_sets")
         .select("*")
         .eq("user_id", user.id)
         .gte("created_at", day + "T00:00:00")
         .lte("created_at", day + "T23:59:59")
+        .in("exercise_name", exNames)
         .order("created_at", { ascending: true });
       setEditWorkoutSets(data || []);
     }
