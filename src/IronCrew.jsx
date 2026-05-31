@@ -2520,7 +2520,7 @@ export default function IronCrew({ user }) {
 
           </>)}
 
-          {findTab === "trainers" && (<>
+          {findTab === "trainers_dup" && (<>
             <div style={{textAlign:"center",padding:"50px 20px"}}>
               <div style={{fontSize:52,marginBottom:16}}>🚧</div>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
@@ -2610,7 +2610,7 @@ export default function IronCrew({ user }) {
 
           </>)}
 
-          {findTab === "shop" && (<>
+          {findTab === "shop_dup" && (<>
             <div style={{textAlign:"center",padding:"50px 20px"}}>
               <div style={{fontSize:52,marginBottom:16}}>🚧</div>
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
