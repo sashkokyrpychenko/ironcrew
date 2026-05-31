@@ -958,8 +958,8 @@ export default function IronCrew({ user }) {
         .from("workout_sets")
         .select("*")
         .eq("user_id", user.id)
-        .gte("created_at", day + "T00:00:00")
-        .lte("created_at", day + "T23:59:59")
+        .gte("created_at", day + "T00:00:00+03:00")
+        .lte("created_at", day + "T23:59:59+03:00")
         .in("exercise_name", exNames)
         .order("created_at", { ascending: true });
       setViewWorkoutSets(data || []);
@@ -979,8 +979,8 @@ export default function IronCrew({ user }) {
         .from("workout_sets")
         .select("*")
         .eq("user_id", user.id)
-        .gte("created_at", day + "T00:00:00")
-        .lte("created_at", day + "T23:59:59")
+        .gte("created_at", day + "T00:00:00+03:00")
+        .lte("created_at", day + "T23:59:59+03:00")
         .in("exercise_name", exNames)
         .order("created_at", { ascending: true });
       setEditWorkoutSets(data || []);
