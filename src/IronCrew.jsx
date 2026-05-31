@@ -183,7 +183,9 @@ const css = `
   .citem:hover{background:var(--surface);}
 
   .cava{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;position:relative;}
+
   .online-dot{position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#4ade80;border-radius:50%;border:2px solid var(--bg);}
+
   .offline-dot{position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:var(--border);border-radius:50%;border:2px solid var(--bg);}
 
   .cinf{flex:1;min-width:0;}
@@ -689,29 +691,47 @@ export default function IronCrew({ user }) {
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
   // Спринт 9 — Онлайн статус
+
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Спринт 8 — Знайти
+
   const [discoverUsers, setDiscoverUsers] = useState([]);
+
   const [discoverLoading, setDiscoverLoading] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
 
   // Спринт 7 — профіль
+
   const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
+
   const [followList, setFollowList] = useState([]);
+
   const [followListLoading, setFollowListLoading] = useState(false);
+
   const [workoutMenu, setWorkoutMenu] = useState(null); // id тренування з відкритим меню
+
   const [viewWorkout, setViewWorkout] = useState(null);
+
   const [viewWorkoutSets, setViewWorkoutSets] = useState([]); // сети для перегляду
+
   const [viewSetsLoading, setViewSetsLoading] = useState(false);
+
   const [editWorkoutSets, setEditWorkoutSets] = useState([]); // сети для редагування
+
   const [editWorkout, setEditWorkout] = useState(null); // тренування для редагування
+
   const [editWorkoutTitle, setEditWorkoutTitle] = useState("");
+
   const [editWorkoutDuration, setEditWorkoutDuration] = useState("");
 
   // Спринт 6 — реальна статистика
+
   const [setsData, setSetsData] = useState([]); // всі workout_sets юзера
+
   const [statsLoading, setStatsLoading] = useState(false);
+
   const [selectedExercise, setSelectedExercise] = useState(null); // для графіка
 
   const endRef = useRef(null);
@@ -719,28 +739,51 @@ export default function IronCrew({ user }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
 
   // Спринт 9 — Realtime Presence для онлайн статусу
+
   useEffect(() => {
+
     if (!user) return;
+
     const channel = supabase.channel("online_users", {
+
       config: { presence: { key: user.id } }
+
     });
+
     channel
+
       .on("presence", { event: "sync" }, () => {
+
         const state = channel.presenceState();
+
         setOnlineUsers(new Set(Object.keys(state)));
+
       })
+
       .on("presence", { event: "join" }, ({ key }) => {
+
         setOnlineUsers(prev => new Set([...prev, key]));
+
       })
+
       .on("presence", { event: "leave" }, ({ key }) => {
+
         setOnlineUsers(prev => { const n = new Set(prev); n.delete(key); return n; });
+
       })
+
       .subscribe(async (status) => {
+
         if (status === "SUBSCRIBED") {
+
           await channel.track({ online_at: new Date().toISOString() });
+
         }
+
       });
+
     return () => { supabase.removeChannel(channel); };
+
   }, [user]);
 
   useEffect(() => {
@@ -748,10 +791,13 @@ export default function IronCrew({ user }) {
     if (!timerActive || !timerStart) return;
 
     // Одразу показуємо актуальний час (якщо повернулись з фону)
+
     setTimerSeconds(Math.floor((Date.now() - timerStart) / 1000));
 
     const interval = setInterval(() => {
+
       setTimerSeconds(Math.floor((Date.now() - timerStart) / 1000));
+
     }, 1000);
 
     return () => clearInterval(interval);
@@ -785,7 +831,9 @@ export default function IronCrew({ user }) {
     setFeedLoading(true);
 
     const { data: posts, error } = await supabase.from("posts")
+
       .select("*, profiles(name, gym, city)")
+
       .order("created_at", { ascending: false }).limit(50);
 
     if (error || !posts) { setFeedLoading(false); return; }
@@ -901,130 +949,239 @@ export default function IronCrew({ user }) {
   }, [user]);
 
   // Завантаження workout_sets для прогресу
+
   // Завантажити реальних юзерів для Знайти
+
   const loadDiscoverUsers = async () => {
+
     if (!user) return;
+
     setDiscoverLoading(true);
+
     const { data } = await supabase
+
       .from("profiles")
+
       .select("user_id, name, gym, city")
+
       .neq("user_id", user.id)
+
       .limit(50);
+
     if (data) setDiscoverUsers(data);
+
     setDiscoverLoading(false);
+
   };
 
   useEffect(() => {
+
     if (tab === "find") loadDiscoverUsers();
+
   }, [tab]);
 
   // Відкрити модалку підписників або підписок
+
   const openFollowModal = async (type) => {
+
     setShowFollowModal(type);
+
     setFollowListLoading(true);
+
     setFollowList([]);
+
     let ids = [];
+
     if (type === 'followers') {
+
       const { data } = await supabase.from("follows").select("follower_id").eq("following_id", user.id);
+
       ids = (data || []).map(f => f.follower_id);
+
     } else {
+
       const { data } = await supabase.from("follows").select("following_id").eq("follower_id", user.id);
+
       ids = (data || []).map(f => f.following_id);
+
     }
+
     if (ids.length > 0) {
+
       const { data: profiles } = await supabase.from("profiles").select("user_id, name, gym, city").in("user_id", ids);
+
       setFollowList(profiles || []);
+
     }
+
     setFollowListLoading(false);
+
   };
 
   // Видалити тренування
+
   const deleteWorkout = async (workoutId) => {
+
     await supabase.from("workouts").delete().eq("id", workoutId).eq("user_id", user.id);
+
     setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+
     setSwipeState({});
+
   };
 
   // Відкрити перегляд тренування з підтягуванням workout_sets
+
   const openViewWorkout = async (w) => {
+
     setViewWorkout(w);
+
     setWorkoutMenu(null);
+
     setViewSetsLoading(true);
+
     setViewWorkoutSets([]);
+
     const day = w.created_at?.slice(0, 10);
+
     const exNames = Array.isArray(w.exercises) ? w.exercises : [];
+
     if (day && exNames.length > 0) {
+
       const { data } = await supabase
+
         .from("workout_sets")
+
         .select("*")
+
         .eq("user_id", user.id)
+
         .gte("created_at", day + "T00:00:00+03:00")
+
         .lte("created_at", day + "T23:59:59+03:00")
+
         .in("exercise_name", exNames)
+
         .order("created_at", { ascending: true });
+
       setViewWorkoutSets(data || []);
+
     }
+
     setViewSetsLoading(false);
+
   };
 
   const openEditWorkout = async (w) => {
+
     setEditWorkout(w);
+
     setEditWorkoutTitle(w.title);
+
     setEditWorkoutDuration(w.duration || "");
+
     setWorkoutMenu(null);
+
     const day = w.created_at?.slice(0, 10);
+
     const exNames = Array.isArray(w.exercises) ? w.exercises : [];
+
     if (day && exNames.length > 0) {
+
       const { data } = await supabase
+
         .from("workout_sets")
+
         .select("*")
+
         .eq("user_id", user.id)
+
         .gte("created_at", day + "T00:00:00+03:00")
+
         .lte("created_at", day + "T23:59:59+03:00")
+
         .in("exercise_name", exNames)
+
         .order("created_at", { ascending: true });
+
       setEditWorkoutSets(data || []);
+
     }
+
   };
 
   const saveEditWorkout = async () => {
+
     if (!editWorkout || !editWorkoutTitle.trim()) return;
+
     // Зберегти тренування
+
     await supabase.from("workouts").update({
+
       title: editWorkoutTitle.trim(),
+
       duration: editWorkoutDuration ? parseInt(editWorkoutDuration) : editWorkout.duration,
+
     }).eq("id", editWorkout.id).eq("user_id", user.id);
+
     // Зберегти змінені workout_sets
+
     for (const s of editWorkoutSets) {
+
       const { error } = await supabase.from("workout_sets").update({
+
         sets: s.sets ? parseInt(s.sets) : null,
+
         reps: s.reps ? parseInt(s.reps) : null,
+
         weight: s.weight ? parseFloat(s.weight) : null,
+
       }).eq("id", s.id).eq("user_id", user.id);
+
       if (error) console.error("workout_sets update error:", error);
+
     }
+
     setWorkouts(prev => prev.map(w => w.id === editWorkout.id
+
       ? { ...w, title: editWorkoutTitle.trim(), duration: editWorkoutDuration ? parseInt(editWorkoutDuration) : w.duration }
+
       : w
+
     ));
+
     setEditWorkout(null);
+
     setEditWorkoutSets([]);
+
   };
 
   const loadSetsData = async () => {
+
     if (!user) return;
+
     setStatsLoading(true);
+
     const { data } = await supabase
+
       .from("workout_sets")
+
       .select("*")
+
       .eq("user_id", user.id)
+
       .order("created_at", { ascending: true });
+
     if (data) setSetsData(data);
+
     setStatsLoading(false);
+
   };
 
   useEffect(() => {
+
     if (tab === "progress") loadSetsData();
+
   }, [tab]);
 
   const submitPost = async () => {
@@ -1848,175 +2005,325 @@ export default function IronCrew({ user }) {
         {/* ── ПРОГРЕС ── */}
 
         {tab === "progress" && (() => {
+
           // ── Обчислення реальної статистики з workout_sets ──
 
           // Загальний обсяг (кг) = сума weight * sets * reps
+
           const totalVolume = setsData.reduce((acc, s) => {
+
             return acc + ((s.weight || 0) * (s.sets || 1) * (s.reps || 1));
+
           }, 0);
+
           const totalVolumeTons = (totalVolume / 1000).toFixed(1);
 
           // Загальний час тренувань з workouts таблиці
+
           const totalMinutes = workouts.reduce((acc, w) => acc + (w.duration || 0), 0);
+
           const totalHours = (totalMinutes / 60).toFixed(1);
 
           // PR по кожній вправі — максимальна вага
+
           const prMap = {};
+
           setsData.forEach(s => {
+
             if (!s.exercise_name || !s.weight) return;
+
             if (!prMap[s.exercise_name] || s.weight > prMap[s.exercise_name].weight) {
+
               prMap[s.exercise_name] = { weight: s.weight, date: s.created_at, sets: s.sets, reps: s.reps };
+
             }
+
           });
+
           const prList = Object.entries(prMap)
+
             .sort((a, b) => b[1].weight - a[1].weight)
+
             .slice(0, 6);
 
           // Графік — обсяг по останніх 7 днях
+
           const last7 = Array.from({ length: 7 }, (_, i) => {
+
             const d = new Date();
+
             d.setDate(d.getDate() - (6 - i));
+
             return d.toISOString().slice(0, 10);
+
           });
+
           const volumeByDay = {};
+
           setsData.forEach(s => {
+
             const day = s.created_at?.slice(0, 10);
+
             if (!day) return;
+
             const vol = (s.weight || 0) * (s.sets || 1) * (s.reps || 1);
+
             volumeByDay[day] = (volumeByDay[day] || 0) + vol;
+
           });
+
           const chartData = last7.map(d => volumeByDay[d] || 0);
+
           const chartMax = Math.max(...chartData, 1);
 
           // Графік прогресу по вибраній вправі
+
           const exNames = [...new Set(setsData.map(s => s.exercise_name).filter(Boolean))];
+
           const activeEx = selectedExercise || exNames[0] || null;
+
           const exHistory = setsData
+
             .filter(s => s.exercise_name === activeEx && s.weight)
+
             .slice(-10)
+
             .map(s => ({ date: s.created_at?.slice(0,10), weight: s.weight, sets: s.sets, reps: s.reps }));
+
           const exMax = Math.max(...exHistory.map(e => e.weight), 1);
 
           return (<>
+
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+
               <div className="stitle" style={{ marginBottom: 0 }}>МІЙ <span>ПРОГРЕС</span></div>
+
               {statsLoading && <div style={{ fontSize: 12, color: "var(--muted)" }}>Завантаження...</div>}
+
             </div>
 
             {/* Статистика — 4 картки */}
+
             <div className="pgrid">
+
               <div className="pcard">
+
                 <div className="pval">{workouts.length}</div>
+
                 <div className="plbl">Тренувань</div>
+
                 <div className="pchg">💪</div>
+
               </div>
+
               <div className="pcard">
+
                 <div className="pval">{totalVolumeTons}т</div>
+
                 <div className="plbl">Загальний обсяг</div>
+
                 <div className="pchg" style={{ color: "#4ade80" }}>↑ реально</div>
+
               </div>
+
               <div className="pcard">
+
                 <div className="pval">{totalHours}</div>
+
                 <div className="plbl">Год у залі</div>
+
                 <div className="pchg">⏱</div>
+
               </div>
+
               <div className="pcard">
+
                 <div className="pval">{prList.length}</div>
+
                 <div className="plbl">Вправ записано</div>
+
                 <div className="pchg" style={{ color: "var(--accent2)" }}>🔥</div>
+
               </div>
+
             </div>
 
             {/* Графік обсягу за 7 днів */}
+
             <div className="bcc">
+
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16 }}>Обсяг за 7 днів (кг)</div>
+
               {chartData.every(v => v === 0) ? (
+
                 <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, padding: "20px 0" }}>
+
                   Немає даних — почни записувати підходи під час тренування
+
                 </div>
+
               ) : (
+
                 <div className="bchart">
+
                   {chartData.map((v, i) => {
+
                     const date = new Date();
+
                     date.setDate(date.getDate() - (6 - i));
+
                     const label = date.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" });
+
                     const h = Math.round((v / chartMax) * 90) + (v > 0 ? 6 : 0);
+
                     return (
+
                       <div className="bcol" key={i}>
+
                         <div className={`bar${i === 6 ? " hi" : ""}`} style={{ height: h, background: v > 0 ? (i === 6 ? "var(--accent)" : "var(--surface2)") : "transparent", border: v > 0 ? "none" : "1px dashed var(--border)" }} />
+
                         <div className="bday" style={{ fontSize: 8 }}>{label}</div>
+
                       </div>
+
                     );
+
                   })}
+
                 </div>
+
               )}
+
             </div>
 
             {/* Графік прогресу по вправі */}
+
             {exNames.length > 0 && (<>
+
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Прогрес по вправі</div>
+
               <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 14, paddingBottom: 2 }}>
+
                 {exNames.map(n => (
+
                   <button key={n} onClick={() => setSelectedExercise(n)}
+
                     style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 20, border: "1px solid", borderColor: activeEx === n ? "var(--accent)" : "var(--border)", background: activeEx === n ? "var(--accent)" : "var(--surface)", color: activeEx === n ? "#000" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "'DM Sans',sans-serif" }}>
+
                     {n}
+
                   </button>
+
                 ))}
+
               </div>
+
               <div className="bcc" style={{ marginBottom: 20 }}>
+
                 {exHistory.length < 2 ? (
+
                   <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, padding: "16px 0" }}>
+
                     Потрібно мінімум 2 записи щоб побачити прогрес
+
                   </div>
+
                 ) : (<>
+
                   <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginBottom: 8 }}>
+
                     {exHistory.map((e, i) => {
+
                       const h = Math.round((e.weight / exMax) * 80) + 10;
+
                       const isLast = i === exHistory.length - 1;
+
                       const isPR = e.weight === exMax;
+
                       return (
+
                         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+
                           {isPR && <div style={{ fontSize: 8, color: "var(--accent2)", fontWeight: 700 }}>PR</div>}
+
                           <div style={{ width: "100%", borderRadius: "4px 4px 0 0", background: isPR ? "var(--accent2)" : isLast ? "var(--accent)" : "var(--surface2)", height: h }} />
+
                           <div style={{ fontSize: 9, color: "var(--muted)" }}>{e.weight}кг</div>
+
                         </div>
+
                       );
+
                     })}
+
                   </div>
+
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--muted)" }}>
+
                     <span>{exHistory[0]?.date}</span>
+
                     <span>PR: {exMax}кг 🔥</span>
+
                     <span>{exHistory[exHistory.length-1]?.date}</span>
+
                   </div>
+
                 </>)}
+
               </div>
+
             </>)}
 
             {/* Особисті рекорди */}
+
             <div className="stitle" style={{ marginBottom: 12 }}>ОСОБИСТІ <span>РЕКОРДИ</span></div>
+
             {prList.length === 0 ? (
+
               <div style={{ textAlign: "center", padding: "30px 0", color: "var(--muted)" }}>
+
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏋️</div>
+
                 <div style={{ fontSize: 13 }}>Рекордів ще немає.<br/>Запиши перше тренування!</div>
+
               </div>
+
             ) : (
+
               <div className="prlist">
+
                 {prList.map(([name, pr], i) => (
+
                   <div className="prcard" key={i}>
+
                     <div className="pricon">🏋️</div>
+
                     <div className="prinfo">
+
                       <div className="prn">{name}</div>
+
                       <div className="prd">{pr.sets}×{pr.reps} · {new Date(pr.date).toLocaleDateString("uk-UA", { day: "numeric", month: "short" })}</div>
+
                     </div>
+
                     <div>
+
                       <div className="prv">{pr.weight}</div>
+
                       <div className="pru">кг</div>
+
                     </div>
+
                   </div>
+
                 ))}
+
               </div>
+
             )}
+
           </>);
+
         })()}
 
         {/* ── ЗНАЙТИ ── */}
@@ -2026,70 +2333,131 @@ export default function IronCrew({ user }) {
           <div className="stitle">ЗНАЙТИ</div>
 
           {/* Таби */}
+
           <div className="ftabs">
+
             {[{id:"people",l:"👥 Люди"},{id:"trainers",l:"🎯 Тренери"},{id:"shop",l:"🛍 Магазин"}].map(ft => (
+
               <button key={ft.id} className={`ftab${findTab===ft.id?" on":""}`} onClick={() => setFindTab(ft.id)}>{ft.l}</button>
+
             ))}
+
           </div>
 
           {/* Люди — реальні юзери */}
+
           {findTab === "people" && (<>
+
             <div className="sbar" style={{marginBottom:16}}>
+
               <span style={{fontSize:16,color:"var(--muted)"}}>🔍</span>
+
               <input
+
                 placeholder="Ім'я, зал, місто..."
+
                 value={searchQuery}
+
                 onChange={e => setSearchQuery(e.target.value)}
+
               />
+
               {searchQuery && <span style={{cursor:"pointer",color:"var(--muted)",fontSize:16}} onClick={() => setSearchQuery("")}>✕</span>}
+
             </div>
+
             {discoverLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:30,fontSize:13}}>Завантаження...</div>}
+
             {!discoverLoading && (() => {
+
               const filtered = discoverUsers.filter(u => {
+
                 if (!searchQuery) return true;
+
                 const q = searchQuery.toLowerCase();
+
                 return (u.name||"").toLowerCase().includes(q) ||
+
                        (u.gym||"").toLowerCase().includes(q) ||
+
                        (u.city||"").toLowerCase().includes(q);
+
               });
+
               if (filtered.length === 0) return (
+
                 <div style={{textAlign:"center",padding:"40px 0",color:"var(--muted)"}}>
+
                   <div style={{fontSize:40,marginBottom:10}}>🔍</div>
+
                   <div style={{fontSize:13}}>{searchQuery ? "Нікого не знайдено" : "Поки що немає інших атлетів"}</div>
+
                 </div>
+
               );
+
               return filtered.map((p, i) => {
+
                 const col = getColor(p.user_id);
+
                 const ini = getIni(p.name);
+
                 const isFollowing = followed[p.user_id];
+
                 return (
+
                   <div key={p.user_id} className="rcard" style={{animationDelay:`${i*0.05}s`}}>
+
                     <div className="rtop">
+
                       <div className="rava" style={{background:col,color:"#fff"}}>{ini}</div>
+
                       <div style={{flex:1}}>
+
                         <div className="rn">{p.name || "Атлет"}</div>
+
                         <div className="rs">{p.gym || ""}{p.city ? (p.gym ? " · " : "") + p.city : ""}</div>
+
                       </div>
+
                       {onlineUsers.has(p.user_id) && <div style={{width:8,height:8,borderRadius:"50%",background:"#4ade80",flexShrink:0}}/>}
+
                     </div>
+
                     {(p.gym || p.city) && <div className="gym-badge">🏢 {p.gym || p.city}</div>}
+
                     <div className="ract">
+
                       <button className="rbtn" onClick={() => openChatWith({id:p.user_id,userId:p.user_id,name:p.name||"Атлет",ini,col})}>💬 Написати</button>
+
                       <button className={`rbtn${isFollowing ? "" : " pri"}`} onClick={() => toggleFollow(p.user_id)}>
+
                         {isFollowing ? "✓ Підписаний" : "+ Підписатись"}
+
                       </button>
+
                     </div>
+
                   </div>
+
                 );
+
               });
+
             })()}
+
           </>)}
 
           <div style={{display:"none"}}>
+
           <div className="ftabs">
+
             {[{id:"people",l:"👥 Люди"}].map(ft => (
+
               <button key={ft.id} className={`ftab${findTab===ft.id?" on":""}`} onClick={() => setFindTab(ft.id)}>{ft.l}</button>
+
             ))}
+
           </div>
 
           {findTab === "people" && (<>
@@ -2140,19 +2508,29 @@ export default function IronCrew({ user }) {
 
           </>)}
 
-          {findTab === "trainers_hidden" && (<>
+          {findTab === "trainers" && (<>
+
             <div style={{textAlign:"center",padding:"50px 20px"}}>
+
               <div style={{fontSize:52,marginBottom:16}}>🚧</div>
+
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
+
               <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260,margin:"0 auto"}}>Цей розділ з'явиться зовсім скоро</div>
+
               <div style={{marginTop:20,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
+
                 <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite",cursor:"pointer"}} onClick={() => alert("не тикай 😤")}/>
+
                 <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
+
               </div>
+
             </div>
+
           </>)}
 
-          {findTab === "trainers_hidden" && (<>
+          {findTab === "trainers_old" && (<>
 
             <div className="filter-bar">
 
@@ -2208,19 +2586,29 @@ export default function IronCrew({ user }) {
 
           </>)}
 
-          {findTab === "shop_hidden" && (<>
+          {findTab === "shop" && (<>
+
             <div style={{textAlign:"center",padding:"50px 20px"}}>
+
               <div style={{fontSize:52,marginBottom:16}}>🚧</div>
+
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:2,color:"var(--text)",marginBottom:8}}>В РОЗРОБЦІ</div>
+
               <div style={{fontSize:14,color:"var(--muted)",lineHeight:1.6,maxWidth:260,margin:"0 auto"}}>Цей розділ з'явиться зовсім скоро</div>
+
               <div style={{marginTop:20,display:"inline-flex",alignItems:"center",gap:8,background:"rgba(232,255,71,0.08)",border:"1px solid rgba(232,255,71,0.2)",borderRadius:12,padding:"10px 18px"}}>
+
                 <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1.5s infinite",cursor:"pointer"}} onClick={() => alert("не тикай 😤")}/>
+
                 <span style={{fontSize:12,color:"var(--accent)",fontWeight:600}}>Очікуй скоро</span>
+
               </div>
+
             </div>
+
           </>)}
 
-          {findTab === "shop_hidden" && (<>
+          {findTab === "shop_old" && (<>
 
             <div className="shop-cats">{shopCats.map(c => <button key={c} className={`scat${shopCat===c?" on":""}`} onClick={() => setShopCat(c)}>{c}</button>)}</div>
 
@@ -2283,16 +2671,25 @@ export default function IronCrew({ user }) {
               <div key={u.user_id} className="citem" onClick={() => openChatWith({ id: u.user_id, userId: u.user_id, name: u.name || "Користувач", ini, col, isOnline: onlineUsers.has(u.user_id) })}>
 
                 <div className="cava" style={{ background: col, color: "#fff" }}>
+
                   {ini}
+
                   <div className={onlineUsers.has(u.user_id) ? "online-dot" : "offline-dot"} />
+
                 </div>
 
                 <div className="cinf">
+
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
+
                     <div className="cname">{u.name || "Користувач"}</div>
+
                     {onlineUsers.has(u.user_id) && <span style={{fontSize:9,color:"#4ade80",fontWeight:700,letterSpacing:0.5}}>ОНЛАЙН</span>}
+
                   </div>
+
                   <div className="cprev">{u.lastMsg || u.gym || "Напиши першим 👋"}</div>
+
                 </div>
 
                 <div className="cmeta"><div className="ctime">💬</div></div>
@@ -2308,16 +2705,27 @@ export default function IronCrew({ user }) {
         {/* ── ПРОФІЛЬ ── */}
 
         {tab === "profile" && (() => {
+
           // Обчислення streak
+
           const workoutDays = new Set(workouts.map(w => w.created_at?.slice(0, 10)).filter(Boolean));
+
           let streak = 0;
+
           const today = new Date();
+
           for (let i = 0; i < 365; i++) {
+
             const d = new Date(today);
+
             d.setDate(d.getDate() - i);
+
             const key = d.toISOString().slice(0, 10);
+
             if (workoutDays.has(key)) { streak++; } else if (i > 0) { break; }
+
           }
+
           return (<>
 
           <div className="pava">{getIni(profile?.name)}</div>
@@ -2327,29 +2735,45 @@ export default function IronCrew({ user }) {
           <div className="pbio">{profile?.gym || ""}{profile?.city ? ` · ${profile.city}` : ""}</div>
 
           {/* Streak badge */}
+
           {streak > 0 && (
+
             <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,107,53,0.1)",border:"1px solid rgba(255,107,53,0.3)",borderRadius:20,padding:"6px 14px",marginBottom:12}}>
+
               <span style={{fontSize:18}}>🔥</span>
+
               <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:20,color:"var(--accent2)",letterSpacing:1}}>{streak}</span>
+
               <span style={{fontSize:12,color:"var(--muted)"}}>днів поспіль</span>
+
             </div>
+
           )}
 
           <div className="pstats">
 
             <div className="pst" style={{cursor:"pointer"}} onClick={() => openFollowModal('followers')}>
+
               <div className="pstv">{followCounts.followers}</div>
+
               <div className="pstl">Підписники</div>
+
             </div>
 
             <div className="pst">
+
               <div className="pstv">{workouts.length}</div>
+
               <div className="pstl">Тренувань</div>
+
             </div>
 
             <div className="pst" style={{cursor:"pointer"}} onClick={() => openFollowModal('following')}>
+
               <div className="pstv">{followCounts.following}</div>
+
               <div className="pstl">Підписки</div>
+
             </div>
 
           </div>
@@ -2371,47 +2795,85 @@ export default function IronCrew({ user }) {
           ) : (
 
             workouts.map((w,i) => (
+
               <div key={w.id} className="wlog-card" style={{animationDelay:`${i*0.07}s`,position:"relative"}}>
+
                 {/* Кнопка ... */}
+
                 <div style={{position:"absolute",top:12,right:12}}>
+
                   <button
+
                     onClick={() => setWorkoutMenu(workoutMenu === w.id ? null : w.id)}
+
                     style={{background:"none",border:"none",color:"var(--muted)",fontSize:18,cursor:"pointer",padding:"0 4px",lineHeight:1}}
+
                   >⋯</button>
+
                   {/* Dropdown меню */}
+
                   {workoutMenu === w.id && (
+
                     <div style={{position:"absolute",right:0,top:24,background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden",zIndex:10,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)"}}>
+
                       <button onClick={() => openViewWorkout(w)}
+
                         style={{width:"100%",padding:"12px 16px",background:"none",border:"none",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",gap:10}}>
+
                         👁 Переглянути
+
                       </button>
+
                       <button onClick={() => openEditWorkout(w)}
+
                         style={{width:"100%",padding:"12px 16px",background:"none",border:"none",color:"var(--text)",fontSize:13,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",gap:10,borderTop:"1px solid var(--border)"}}>
+
                         ✏️ Редагувати
+
                       </button>
+
                       <button onClick={() => { deleteWorkout(w.id); setWorkoutMenu(null); }}
+
                         style={{width:"100%",padding:"12px 16px",background:"none",border:"none",color:"#ff3b30",fontSize:13,fontWeight:500,cursor:"pointer",textAlign:"left",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",gap:10,borderTop:"1px solid var(--border)"}}>
+
                         🗑 Видалити
+
                       </button>
+
                     </div>
+
                   )}
+
                 </div>
+
                 <div className="wlog-title" style={{paddingRight:32}}>{w.title}</div>
+
                 <div className="wlog-meta">
+
                   {w.duration && <div className="wlog-chip">⏱ <span>{w.duration} хв</span></div>}
+
                   {w.volume && <div className="wlog-chip">🏋️ <span>{w.volume} т</span></div>}
+
                   {Array.isArray(w.exercises) && w.exercises.length > 0 && <div className="wlog-chip">📋 <span>{w.exercises.length} вправ</span></div>}
+
                 </div>
+
                 {Array.isArray(w.exercises) && w.exercises.length > 0 && (
+
                   <div className="wlog-exlist">{w.exercises.map((ex,j) => <div className="wlog-exrow" key={j}><span>{ex}</span></div>)}</div>
+
                 )}
+
                 <div className="wlog-date">📅 {formatDate(w.created_at)}</div>
+
               </div>
+
             ))
 
           )}
 
           </>);
+
         })()}
 
         {/* ── МОДАЛКА РЕДАГУВАННЯ ПРОФІЛЮ ── */}
@@ -2624,142 +3086,254 @@ export default function IronCrew({ user }) {
 
         })()}
 
-
         {/* ── МОДАЛКА ПІДПИСНИКИ / ПІДПИСКИ ── */}
+
         {showFollowModal && (
+
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => setShowFollowModal(null)}>
+
             <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"70vh",overflowY:"auto"}} onClick={e => e.stopPropagation()}>
+
               <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:1.5,marginBottom:20}}>
+
                 {showFollowModal === 'followers' ? 'ПІДПИСНИКИ' : 'ПІДПИСКИ'}
+
               </div>
+
               {followListLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:20}}>Завантаження...</div>}
+
               {!followListLoading && followList.length === 0 && (
+
                 <div style={{textAlign:"center",color:"var(--muted)",padding:20,fontSize:13}}>
+
                   {showFollowModal === 'followers' ? 'Ще немає підписників' : 'Ти ще нікого не підписаний'}
+
                 </div>
+
               )}
+
               {followList.map(p => (
+
                 <div key={p.user_id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+
                   <div style={{width:44,height:44,borderRadius:"50%",background:getColor(p.user_id),display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,fontWeight:700,color:"#fff",flexShrink:0}}>{getIni(p.name)}</div>
+
                   <div style={{flex:1}}>
+
                     <div style={{fontSize:14,fontWeight:600}}>{p.name || "Користувач"}</div>
+
                     <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{p.gym || p.city || ""}</div>
+
                   </div>
+
                   <button
+
                     style={{padding:"7px 14px",borderRadius:10,border:"1px solid",borderColor:followed[p.user_id]?"var(--accent)":"var(--border)",background:followed[p.user_id]?"rgba(232,255,71,0.1)":"var(--surface2)",color:followed[p.user_id]?"var(--accent)":"var(--muted)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}
+
                     onClick={() => toggleFollow(p.user_id)}
+
                   >
+
                     {followed[p.user_id] ? "✓ Підписаний" : "+ Підписатись"}
+
                   </button>
+
                 </div>
+
               ))}
+
             </div>
+
           </div>
+
         )}
 
-
         {/* ── ПЕРЕГЛЯД ТРЕНУВАННЯ ── */}
+
         {viewWorkout && (
+
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => { setViewWorkout(null); setViewWorkoutSets([]); }}>
+
             <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
               <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:1,marginBottom:6}}>{viewWorkout.title}</div>
+
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+
                 {viewWorkout.duration && <div className="wlog-chip">⏱ <span>{viewWorkout.duration} хв</span></div>}
+
                 {viewWorkout.volume && <div className="wlog-chip">🏋️ <span>{viewWorkout.volume} т</span></div>}
+
                 <div className="wlog-chip">📅 <span>{formatDate(viewWorkout.created_at)}</span></div>
+
               </div>
 
               {/* Workout sets з деталями */}
+
               {viewSetsLoading && <div style={{textAlign:"center",color:"var(--muted)",padding:16,fontSize:13}}>Завантаження...</div>}
 
               {!viewSetsLoading && viewWorkoutSets.length > 0 && (<>
+
                 <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Підходи</div>
+
                 <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+
                   {viewWorkoutSets.map((s, i) => (
+
                     <div key={s.id} style={{background:"var(--surface2)",borderRadius:12,padding:"12px 14px"}}>
+
                       <div style={{fontSize:13,fontWeight:600,marginBottom:8,color:"var(--text)"}}>{s.exercise_name}</div>
+
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+
                         {[["Підходи", s.sets], ["Повторення", s.reps], ["Вага (кг)", s.weight]].map(([lbl, val]) => (
+
                           <div key={lbl} style={{background:"var(--card)",borderRadius:8,padding:"8px",textAlign:"center"}}>
+
                             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--accent)",lineHeight:1}}>{val ?? "—"}</div>
+
                             <div style={{fontSize:9,color:"var(--muted)",marginTop:3}}>{lbl}</div>
+
                           </div>
+
                         ))}
+
                       </div>
+
                     </div>
+
                   ))}
+
                 </div>
+
               </>)}
 
               {/* Якщо нема workout_sets але є exercises — показуємо просто список */}
+
               {!viewSetsLoading && viewWorkoutSets.length === 0 && Array.isArray(viewWorkout.exercises) && viewWorkout.exercises.length > 0 && (<>
+
                 <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:12}}>Вправи</div>
+
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
+
                   {viewWorkout.exercises.map((ex, i) => (
+
                     <div key={i} style={{display:"flex",alignItems:"center",gap:12,background:"var(--surface2)",borderRadius:10,padding:"10px 14px"}}>
+
                       <div style={{width:24,height:24,borderRadius:6,background:"rgba(232,255,71,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Bebas Neue',sans-serif",fontSize:14,color:"var(--accent)",flexShrink:0}}>{i+1}</div>
+
                       <div style={{fontSize:13,fontWeight:500}}>{ex}</div>
+
                     </div>
+
                   ))}
+
                 </div>
+
               </>)}
 
               {!viewSetsLoading && viewWorkoutSets.length === 0 && (!viewWorkout.exercises || viewWorkout.exercises.length === 0) && (
+
                 <div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"20px 0"}}>Детальних даних немає</div>
+
               )}
+
             </div>
+
           </div>
+
         )}
 
         {/* ── РЕДАГУВАННЯ ТРЕНУВАННЯ ── */}
+
         {editWorkout && (
+
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={() => { setEditWorkout(null); setEditWorkoutSets([]); }}>
+
             <div style={{background:"var(--surface)",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"24px 20px 40px",maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+
               <div style={{width:40,height:4,background:"var(--border)",borderRadius:2,margin:"0 auto 20px"}}/>
+
               <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:1.5,marginBottom:20}}>РЕДАГУВАТИ</div>
 
               <div className="field-label">Назва</div>
+
               <input className="field-input" value={editWorkoutTitle} onChange={e=>setEditWorkoutTitle(e.target.value)} placeholder="Назва тренування"/>
 
               <div className="field-label">Тривалість (хв)</div>
+
               <input className="field-input" type="number" value={editWorkoutDuration} onChange={e=>setEditWorkoutDuration(e.target.value)} placeholder="60"/>
 
               {editWorkoutSets.length > 0 && (<>
+
                 <div style={{fontSize:11,color:"var(--muted)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",margin:"4px 0 12px"}}>Підходи</div>
+
                 <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+
                   {editWorkoutSets.map((s, i) => (
+
                     <div key={s.id} style={{background:"var(--surface2)",borderRadius:12,padding:"12px 14px"}}>
+
                       <div style={{fontSize:12,fontWeight:600,color:"var(--muted)",marginBottom:8}}>{s.exercise_name}</div>
+
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+
                         {[
+
                           ["Підходи", s.sets, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, sets: parseInt(v)||0} : x))],
+
                           ["Повторення", s.reps, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, reps: parseInt(v)||0} : x))],
+
                           ["Вага (кг)", s.weight, v => setEditWorkoutSets(prev => prev.map((x,j) => j===i ? {...x, weight: parseFloat(v)||0} : x))],
+
                         ].map(([lbl, val, onChange]) => (
+
                           <div key={lbl}>
+
                             <div style={{fontSize:9,color:"var(--muted)",textAlign:"center",marginBottom:4}}>{lbl}</div>
+
                             <input
+
                               type="number"
+
                               value={val ?? ""}
+
                               onChange={e => onChange(e.target.value)}
+
                               style={{width:"100%",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:"8px 4px",color:"var(--text)",fontSize:14,textAlign:"center",fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+
                             />
+
                           </div>
+
                         ))}
+
                       </div>
+
                     </div>
+
                   ))}
+
                 </div>
+
               </>)}
 
               <div style={{display:"flex",gap:10,marginTop:4}}>
+
                 <button onClick={() => { setEditWorkout(null); setEditWorkoutSets([]); }} style={{flex:1,padding:14,borderRadius:12,border:"1px solid var(--border)",background:"var(--surface2)",color:"var(--muted)",fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:600,cursor:"pointer"}}>Скасувати</button>
+
                 <button onClick={saveEditWorkout} style={{flex:1,padding:14,borderRadius:12,border:"none",background:"var(--accent)",color:"#000",fontFamily:"'Bebas Neue',sans-serif",fontSize:18,letterSpacing:1,cursor:"pointer"}}>ЗБЕРЕГТИ</button>
+
               </div>
+
             </div>
+
           </div>
+
         )}
 
       <div className="bottomnav">
