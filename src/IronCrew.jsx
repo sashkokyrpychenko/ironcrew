@@ -183,6 +183,8 @@ const css = `
   .citem:hover{background:var(--surface);}
 
   .cava{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;position:relative;}
+  .online-dot{position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:#4ade80;border-radius:50%;border:2px solid var(--bg);}
+  .offline-dot{position:absolute;bottom:1px;right:1px;width:12px;height:12px;background:var(--border);border-radius:50%;border:2px solid var(--bg);}
 
   .cinf{flex:1;min-width:0;}
 
@@ -686,6 +688,9 @@ export default function IronCrew({ user }) {
 
   const [showNextWorkout, setShowNextWorkout] = useState(false);
 
+  // Спринт 9 — Онлайн статус
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
   // Спринт 8 — Знайти
   const [discoverUsers, setDiscoverUsers] = useState([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
@@ -705,6 +710,31 @@ export default function IronCrew({ user }) {
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgsReal, openChat]);
+
+  // Спринт 9 — Realtime Presence для онлайн статусу
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel("online_users", {
+      config: { presence: { key: user.id } }
+    });
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        setOnlineUsers(new Set(Object.keys(state)));
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        setOnlineUsers(prev => new Set([...prev, key]));
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        setOnlineUsers(prev => { const n = new Set(prev); n.delete(key); return n; });
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   useEffect(() => {
 
@@ -1196,7 +1226,7 @@ export default function IronCrew({ user }) {
 
             <div className="cwname">{openChat.name}</div>
 
-            <div className="cwst">● онлайн</div>
+            <div className="cwst" style={{color: openChat?.isOnline ? "#4ade80" : "var(--muted)"}}>{openChat?.isOnline ? "● онлайн" : "● офлайн"}</div>
 
           </div>
 
@@ -2149,16 +2179,19 @@ export default function IronCrew({ user }) {
 
             return (
 
-              <div key={u.user_id} className="citem" onClick={() => openChatWith({ id: u.user_id, userId: u.user_id, name: u.name || "Користувач", ini, col })}>
+              <div key={u.user_id} className="citem" onClick={() => openChatWith({ id: u.user_id, userId: u.user_id, name: u.name || "Користувач", ini, col, isOnline: onlineUsers.has(u.user_id) })}>
 
-                <div className="cava" style={{ background: col, color: "#fff" }}>{ini}</div>
+                <div className="cava" style={{ background: col, color: "#fff" }}>
+                  {ini}
+                  <div className={onlineUsers.has(u.user_id) ? "online-dot" : "offline-dot"} />
+                </div>
 
                 <div className="cinf">
-
-                  <div className="cname">{u.name || "Користувач"}</div>
-
-                  <div className="cprev">{u.lastMsg || u.gym || "ЧЕКАЄ ТВОЄ ПОВІДОМЛЕННЯ"}</div>
-
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div className="cname">{u.name || "Користувач"}</div>
+                    {onlineUsers.has(u.user_id) && <span style={{fontSize:9,color:"#4ade80",fontWeight:700,letterSpacing:0.5}}>ОНЛАЙН</span>}
+                  </div>
+                  <div className="cprev">{u.lastMsg || u.gym || "Напиши першим 👋"}</div>
                 </div>
 
                 <div className="cmeta"><div className="ctime">💬</div></div>
